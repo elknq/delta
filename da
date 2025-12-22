@@ -1,8 +1,9 @@
 --[[
     ╔══════════════════════════════════════════╗
-    ║       WALLHAN HUB - FINAL V8             ║
-    ║  ✅ REWRITE FROM SCRATCH (Minimal UI)    ║
-    ║  ✅ FE Emote, Advanced Wood Shield       ║
+    ║       WALLHAN HUB - FINAL V9             ║
+    ║  ✅ FIX: Wood Shield Speed & Radius      ║
+    ║  ✅ FIX: Dance Function (Load Animation) ║
+    ║  ✅ ADD: Teleport Tool Button            ║
     ╚══════════════════════════════════════════╝
 ]]
 
@@ -19,9 +20,14 @@ local _G_States = { WoodShield = false, Noclip = false, ESP = false }
 -- [[ دالة تشغيل الرقصات - Beautiful Dance (FE) ]]
 local function PlayFEEmote(animationId)
     if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
+        -- ✅ FIX: استخدام AnimationTrack بدلاً من LoadAnimation مباشرة
+        local humanoid = LocalPlayer.Character.Humanoid
+        local animator = humanoid:FindFirstChildOfClass("Animator") or Instance.new("Animator", humanoid)
+        
         local anim = Instance.new("Animation")
         anim.AnimationId = "rbxassetid://" .. animationId
-        local load = LocalPlayer.Character.Humanoid:LoadAnimation(anim)
+        
+        local load = animator:LoadAnimation(anim)
         load.Priority = Enum.AnimationPriority.Action
         load:Play()
         
@@ -31,6 +37,29 @@ local function PlayFEEmote(animationId)
             Duration = 3
         })
     end
+end
+
+-- [[ دالة إعطاء أداة التيليبورت ]]
+local function GiveTeleportTool()
+    local tp = Instance.new("Tool")
+    tp.Name = "Wallhan TP 📍"
+    tp.RequiresHandle = false
+    
+    -- ✅ FIX: استخدام LocalPlayer:GetMouse() داخل الدالة لضمان تحديثها
+    tp.Activated:Connect(function() 
+        local currentMouse = LocalPlayer:GetMouse()
+        if currentMouse.Hit then
+            LocalPlayer.Character:MoveTo(currentMouse.Hit.p) 
+        end
+    end)
+    
+    tp.Parent = LocalPlayer.Backpack
+    
+    game:GetService("StarterGui"):SetCore("SendNotification", {
+        Title = "Wallhan Hub",
+        Text = "Teleport Tool Added! 📍",
+        Duration = 3
+    })
 end
 
 -- [[ واجهة المستخدم البسيطة (Minimal UI) ]]
@@ -45,8 +74,8 @@ local function CreateMinimalUI()
     
     -- الإطار الرئيسي (القائمة)
     local Main = Instance.new("Frame", sg)
-    Main.Size = UDim2.new(0, 200, 0, 300)
-    Main.Position = UDim2.new(1, -210, 0.5, -150)
+    Main.Size = UDim2.new(0, 200, 0, 350) -- تم زيادة الحجم لإضافة زر جديد
+    Main.Position = UDim2.new(1, -210, 0.5, -175)
     Main.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
     Main.Active = true
     Main.Draggable = true
@@ -55,7 +84,7 @@ local function CreateMinimalUI()
     
     local Title = Instance.new("TextLabel", Main)
     Title.Size = UDim2.new(1, 0, 0, 30)
-    Title.Text = "Wallhan Hub V8"
+    Title.Text = "Wallhan Hub V9"
     Title.BackgroundColor3 = Color3.fromRGB(150, 0, 0)
     Title.TextColor3 = Color3.new(1, 1, 1)
     Title.Font = Enum.Font.SourceSansBold
@@ -113,6 +142,8 @@ local function CreateMinimalUI()
         PlayFEEmote("104077918384157")
     end)
     
+    CreateButton("GIVE TELEPORT TOOL 📍", GiveTeleportTool) -- ✅ ADD: زر التيليبورت
+    
     CreateButton("SET CHECKPOINT", function()
         if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
             SavedCheckpoint = LocalPlayer.Character.HumanoidRootPart.CFrame
@@ -147,13 +178,14 @@ local function CreateMinimalUI()
     Main.Visible = false
 end
 
--- [[ Wood Shield - محسّن (يبقى لأطول مدة، دوران عشوائي، يقذف اللاعبين) ]]
+-- [[ Wood Shield - محسّن (يبقى لأطول مدة، دوران أسرع وأقرب، يقذف اللاعبين بقوة) ]]
 local woodParts = {}
 task.spawn(function()
     local angle = 0
     while true do
         if _G_States.WoodShield and LocalPlayer.Character then
-            angle = angle + 4
+            -- ✅ FIX: زيادة سرعة الدوران
+            angle = angle + 10 
             local hrp = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
             if hrp then
                 
@@ -178,9 +210,9 @@ task.spawn(function()
                                 al.MaxVelocity = math.huge
                                 al.Responsiveness = 500
                                 
-                                -- الدوران العشوائي (يمين، يسار، فوق، تحت)
-                                local radius = 3
-                                local y_offset = math.sin(math.rad(angle * 2)) * 1.5
+                                -- ✅ FIX: تقليل نصف قطر الدوران ليكون أقرب للجسم
+                                local radius = 1.5 
+                                local y_offset = math.sin(math.rad(angle * 2)) * 0.5 -- تقليل الحركة العمودية
                                 a1.Position = Vector3.new(
                                     math.cos(math.rad(angle)) * radius, 
                                     y_offset, 
@@ -191,14 +223,14 @@ task.spawn(function()
                                 
                                 table.insert(woodParts, {part = v, align = al, att = a1})
                                 
-                                -- يقذف اللاعبين: إضافة دالة Touch
+                                -- ✅ FIX: زيادة قوة القذف
                                 v.Touched:Connect(function(hit)
                                     local hitHumanoid = hit.Parent:FindFirstChildOfClass("Humanoid")
                                     if hitHumanoid and hitHumanoid.Parent ~= LocalPlayer.Character then
                                         local targetHRP = hitHumanoid.Parent:FindFirstChild("HumanoidRootPart")
                                         if targetHRP then
                                             local direction = (targetHRP.Position - hrp.Position).Unit
-                                            targetHRP.Velocity = direction * 150 + Vector3.new(0, 50, 0)
+                                            targetHRP.Velocity = direction * 500 + Vector3.new(0, 100, 0) -- قوة قذف عالية جداً
                                         end
                                     end
                                 end)
@@ -210,8 +242,8 @@ task.spawn(function()
                 -- 2. تحديث موقع الدوران للأجزاء الموجودة
                 for _, data in pairs(woodParts) do
                     if data.att and data.att.Parent then
-                        local radius = 3
-                        local y_offset = math.sin(math.rad(angle * 2)) * 1.5
+                        local radius = 1.5
+                        local y_offset = math.sin(math.rad(angle * 2)) * 0.5
                         data.att.Position = Vector3.new(
                             math.cos(math.rad(angle)) * radius, 
                             y_offset, 
@@ -219,8 +251,8 @@ task.spawn(function()
                         )
                     else
                         -- إزالة الأجزاء التي تدمرت من اللعبة
-                        data.align:Destroy()
-                        data.att:Destroy()
+                        if data.align and data.align.Parent then data.align:Destroy() end
+                        if data.att and data.att.Parent then data.att:Destroy() end
                         table.remove(woodParts, table.find(woodParts, data))
                     end
                 end
