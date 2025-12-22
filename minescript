@@ -9,14 +9,19 @@ local Mouse = LocalPlayer:GetMouse()
 -- متغير لحفظ نقطة التشيك بوينت
 local SavedCheckpoint = nil
 
--- [[ دالة تشغيل الرقصات المدمجة - سورس كود كامل ]]
+-- [[ دالة تشغيل الرقصات - Beautiful Dance فقط ]]
 local function OpenWallhanEmotes()
+    -- تدمير أي واجهة رقصات قديمة
+    local existingGui = game.CoreGui:FindFirstChild("WallhanEmotesMenu")
+    if existingGui then existingGui:Destroy() end
+    
     local ScreenGui = Instance.new("ScreenGui", game.CoreGui)
     ScreenGui.Name = "WallhanEmotesMenu"
+    ScreenGui.DisplayOrder = 999
     
     local MainFrame = Instance.new("Frame", ScreenGui)
-    MainFrame.Size = UDim2.new(0, 400, 0, 320)
-    MainFrame.Position = UDim2.new(0.5, -200, 0.5, -160)
+    MainFrame.Size = UDim2.new(0, 300, 0, 200) -- حجم أصغر
+    MainFrame.Position = UDim2.new(0.5, -150, 0.5, -100)
     MainFrame.BackgroundColor3 = Color3.fromRGB(10, 10, 10)
     MainFrame.Active = true
     MainFrame.Draggable = true
@@ -27,61 +32,55 @@ local function OpenWallhanEmotes()
 
     local Title = Instance.new("TextLabel", MainFrame)
     Title.Size = UDim2.new(1, 0, 0, 45)
-    Title.Text = "🕺 WALLHAN EMOTES 🕺"
+    Title.Text = "💃 BEAUTIFUL DANCE 💃"
     Title.BackgroundColor3 = Color3.fromRGB(150, 0, 0)
     Title.TextColor3 = Color3.new(1, 1, 1)
     Title.Font = Enum.Font.GothamBold
     Title.TextSize = 18
     Instance.new("UICorner", Title)
 
-    local Scroll = Instance.new("ScrollingFrame", MainFrame)
-    Scroll.Size = UDim2.new(1, -10, 1, -60)
-    Scroll.Position = UDim2.new(0, 5, 0, 50)
-    Scroll.BackgroundTransparency = 1
-    Scroll.CanvasSize = UDim2.new(0, 0, 4, 0)
-    local layout = Instance.new("UIGridLayout", Scroll)
-    layout.CellSize = UDim2.new(0, 120, 0, 40)
-    layout.Padding = UDim2.new(0, 8, 0, 8)
-
-    -- قائمة IDs الرقصات (مع الرقصة الجديدة)
-    local emotes = {
-        ["Griddy"] = 9606471821, 
-        ["Bugha"] = 7212401314, 
-        ["Billy"] = 3338340150,
-        ["Dancin"] = 5103431709, 
-        ["Floss"] = 2825749343, 
-        ["Take The L"] = 2825729114,
-        ["Default"] = 507771019, 
-        ["Robot"] = 507771955, 
-        ["Hype"] = 3696748324,
-        ["Orange Justice"] = 3696756105, 
-        ["Best Mates"] = 3696761332,
-        ["Beautiful Dance"] = 104077918384157 -- الرقصة الجديدة
-    }
-
-    for name, id in pairs(emotes) do
-        local btn = Instance.new("TextButton", Scroll)
-        btn.Text = name
-        btn.BackgroundColor3 = Color3.fromRGB(40, 0, 0)
-        btn.TextColor3 = Color3.new(1, 1, 1)
-        btn.Font = Enum.Font.GothamBold
-        btn.TextSize = 12
-        Instance.new("UICorner", btn)
-        btn.MouseButton1Click:Connect(function()
+    -- زر تشغيل الرقصة الوحيدة
+    local DanceButton = Instance.new("TextButton", MainFrame)
+    DanceButton.Size = UDim2.new(0.8, 0, 0, 60)
+    DanceButton.Position = UDim2.new(0.1, 0, 0.3, 0)
+    DanceButton.Text = "💃 PLAY BEAUTIFUL DANCE 💃"
+    DanceButton.BackgroundColor3 = Color3.fromRGB(50, 0, 0)
+    DanceButton.TextColor3 = Color3.new(1, 1, 1)
+    DanceButton.Font = Enum.Font.GothamBold
+    DanceButton.TextSize = 14
+    Instance.new("UICorner", DanceButton)
+    
+    -- تأثير عند الضغط
+    DanceButton.MouseButton1Click:Connect(function()
+        if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
             local anim = Instance.new("Animation")
-            anim.AnimationId = "rbxassetid://"..id
+            anim.AnimationId = "rbxassetid://104077918384157" -- Beautiful Dance فقط
             local load = LocalPlayer.Character.Humanoid:LoadAnimation(anim)
             load:Play()
-        end)
-    end
+            
+            -- إشعار
+            game:GetService("StarterGui"):SetCore("SendNotification", {
+                Title = "Wallhan Emotes",
+                Text = "Playing: Beautiful Dance 💃",
+                Duration = 3
+            })
+        end
+    end)
 
+    -- زر الإغلاق
     local Close = Instance.new("TextButton", MainFrame)
     Close.Size = UDim2.new(0, 30, 0, 30)
     Close.Position = UDim2.new(1, -35, 0, 7)
-    Close.Text = "X"
-    Close.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+    Close.Text = "✕"
+    Close.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
     Close.TextColor3 = Color3.new(1, 1, 1)
-    Close.MouseButton1Click:Connect(function() ScreenGui:Destroy() end)
+    Close.Font = Enum.Font.GothamBold
+    Close.TextSize = 16
+    Instance.new("UICorner", Close)
+    
+    Close.MouseButton1Click:Connect(function() 
+        ScreenGui:Destroy() 
+    end)
 end
 
 -- [[ START CORE ]]
@@ -211,20 +210,20 @@ local function StartWallhan()
         end
     end)
 
-    -- [[ ESP ]] -- اللون أحمر فقط
+    -- [[ ESP ]]
     RunService.RenderStepped:Connect(function()
         for _, p in pairs(Players:GetPlayers()) do
             if p ~= LocalPlayer and p.Character and _G_States.ESP then
                 if not p.Character:FindFirstChild("BoxESP") then
                     local b = Instance.new("BoxHandleAdornment", p.Character)
                     b.Name, b.AlwaysOnTop, b.Adornee = "BoxESP", true, p.Character
-                    b.Size, b.Color3, b.Transparency = p.Character:GetExtentsSize(), Color3.new(1,0,0), 0.6 -- أحمر
+                    b.Size, b.Color3, b.Transparency = p.Character:GetExtentsSize(), Color3.new(1,0,0), 0.6
                     local bill = Instance.new("BillboardGui", p.Character)
                     bill.Name, bill.Size, bill.AlwaysOnTop = "NameESP", UDim2.new(0, 100, 0, 50), true
                     bill.Adornee = p.Character:FindFirstChild("Head")
                     local lbl = Instance.new("TextLabel", bill)
                     lbl.Size, lbl.Text = UDim2.new(1, 0, 1, 0), p.Name
-                    lbl.BackgroundTransparency, lbl.TextColor3 = 1, Color3.new(1,0,0) -- أحمر
+                    lbl.BackgroundTransparency, lbl.TextColor3 = 1, Color3.new(1,0,0)
                     lbl.Font, lbl.TextSize = Enum.Font.GothamBold, 14
                     Instance.new("UIStroke", lbl).Thickness = 1
                 end
@@ -245,7 +244,7 @@ local function StartWallhan()
     ToggleBtn.MouseButton1Click:Connect(function() Main.Visible = not Main.Visible end)
 end
 
--- واجهة الدخول -- نفس السكربت القديم
+-- واجهة الدخول
 local KeyGui = Instance.new("ScreenGui", game.CoreGui)
 local KeyFrame = Instance.new("Frame", KeyGui)
 KeyFrame.Size, KeyFrame.Position = UDim2.new(0, 300, 0, 160), UDim2.new(0.5, -150, 0.5, -80)
