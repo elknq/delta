@@ -1,8 +1,8 @@
 --[[
     ╔══════════════════════════════════════════╗
-    ║       WALLHAN HUB - PROFESSIONAL V2      ║
+    ║       WALLHAN HUB - PROFESSIONAL V3      ║
     ║  FE Emote, Advanced Wood Shield, New UI  ║
-    ║  ✅ FIX: UI Visibility for Delta/iPhone  ║
+    ║  ✅ FINAL FIX: Loadstring/Delta Compatibility ║
     ╚══════════════════════════════════════════╝
 ]]
 
@@ -12,8 +12,10 @@ local VALID_KEYS = {["0x1xxxxjwj"] = true, ["iloveyoudaddywallhan"] = true}
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
-local LocalPlayer = Players.LocalPlayer
-local Mouse = LocalPlayer:GetMouse()
+
+-- ✅ FIX: سيتم تعريف LocalPlayer و Mouse لاحقاً لضمان التوافق مع Loadstring
+local LocalPlayer
+local Mouse
 
 -- متغير لحفظ نقطة التشيك بوينت
 local SavedCheckpoint = nil
@@ -54,7 +56,6 @@ end
 
 -- [[ واجهة الرقصات ]]
 local function OpenWallhanEmotes()
-    -- ✅ FIX: استخدام PlayerGui لضمان الظهور
     local parentGui = game.CoreGui
     if LocalPlayer and LocalPlayer:FindFirstChild("PlayerGui") then
         parentGui = LocalPlayer.PlayerGui
@@ -66,7 +67,7 @@ local function OpenWallhanEmotes()
     local ScreenGui = Instance.new("ScreenGui")
     ScreenGui.Name = "WallhanEmotesMenu"
     ScreenGui.DisplayOrder = 999
-    ScreenGui.Parent = parentGui -- ✅ تعيين الـ Parent
+    ScreenGui.Parent = parentGui
     
     local MainFrame = Instance.new("Frame", ScreenGui)
     MainFrame.Size = UDim2.new(0, 350, 0, 250)
@@ -106,7 +107,6 @@ local function OpenWallhanEmotes()
     DanceButton:SetAttribute("OriginalColor", Color3.fromRGB(60, 10, 10))
     AnimateButton(DanceButton)
     
-    -- ✅ تم إصلاح الـ ID وجعلها FE
     DanceButton.MouseButton1Click:Connect(function()
         PlayFEEmote("4077918384157") -- Beautiful Dance ID
     end)
@@ -135,7 +135,10 @@ end
 local function StartWallhan()
     local _G_States = { ESP = false, Noclip = false, WoodShield = false, AntiFling = false }
     
-    -- ✅ FIX: استخدام PlayerGui لضمان الظهور
+    -- ✅ FIX: استخدام LocalPlayer و Mouse بعد التأكد من تحميلهما
+    LocalPlayer = Players.LocalPlayer
+    Mouse = LocalPlayer:GetMouse()
+    
     local parentGui = game.CoreGui
     if LocalPlayer and LocalPlayer:FindFirstChild("PlayerGui") then
         parentGui = LocalPlayer.PlayerGui
@@ -144,7 +147,7 @@ local function StartWallhan()
     local sg = Instance.new("ScreenGui")
     sg.Name = "WallhanHub"
     sg.ResetOnSpawn = false
-    sg.Parent = parentGui -- ✅ تعيين الـ Parent هنا
+    sg.Parent = parentGui
     
     local Main = Instance.new("Frame", sg)
     Main.Size = UDim2.new(0, 320, 0, 620)
@@ -178,7 +181,7 @@ local function StartWallhan()
     local Subtitle = Instance.new("TextLabel", Header)
     Subtitle.Size = UDim2.new(1, 0, 0.3, 0)
     Subtitle.Position = UDim2.new(0, 0, 0.65, 0)
-    Subtitle.Text = "Professional Edition V2"
+    Subtitle.Text = "Professional Edition V3"
     Subtitle.BackgroundTransparency = 1
     Subtitle.TextColor3 = Color3.fromRGB(255, 200, 200)
     Subtitle.Font = Enum.Font.Gotham
@@ -381,5 +384,5 @@ local function StartWallhan()
                                             local targetHRP = hitHumanoid.Parent:FindFirstChild("HumanoidRootPart")
                                             if targetHRP then
                                                 local direction = (targetHRP.Position - hrp.Position).Unit
-                                 
+                            
 (Content truncated due to size limit. Use page ranges or line ranges to read remaining content)
