@@ -1,8 +1,8 @@
 --[[
     ╔══════════════════════════════════════════╗
-    ║       WALLHAN HUB - ORIGINAL UI FIX      ║
-    ║  FE Emote, Advanced Wood Shield, Old UI  ║
-    ║  ✅ FIX: Compatibility with Delta/iPhone  ║
+    ║       WALLHAN HUB - FINAL FIX V6         ║
+    ║  ✅ FIX: FE Emote, Advanced Wood Shield  ║
+    ║  ✅ FIX: UI Appearance (Keeping Original) ║
     ╚══════════════════════════════════════════╝
 ]]
 
@@ -11,11 +11,9 @@ local VALID_KEYS = {["0x1xxxxjwj"] = true, ["iloveyoudaddywallhan"] = true}
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
-local TweenService = game:GetService("TweenService") -- تم الإبقاء عليه للـ Wood Shield
-
--- ✅ FIX: سيتم تعريف LocalPlayer و Mouse بعد تحميل اللاعب
-local LocalPlayer
-local Mouse
+local TweenService = game:GetService("TweenService") -- تم إضافة TweenService
+local LocalPlayer = Players.LocalPlayer
+local Mouse = LocalPlayer:GetMouse()
 
 -- متغير لحفظ نقطة التشيك بوينت
 local SavedCheckpoint = nil
@@ -26,7 +24,7 @@ local function PlayFEEmote(animationId)
         local anim = Instance.new("Animation")
         anim.AnimationId = "rbxassetid://" .. animationId
         local load = LocalPlayer.Character.Humanoid:LoadAnimation(anim)
-        load.Priority = Enum.AnimationPriority.Action -- لزيادة فرصة رؤية الآخرين لها
+        load.Priority = Enum.AnimationPriority.Action -- ✅ FIX: لضمان أن يراها الآخرون (FE)
         load:Play()
         
         -- إشعار
@@ -40,22 +38,16 @@ end
 
 -- [[ دالة تشغيل الرقصات - Beautiful Dance فقط (الواجهة القديمة) ]]
 local function OpenWallhanEmotes()
-    -- ✅ FIX: استخدام PlayerGui لضمان الظهور
-    local parentGui = game.CoreGui
-    if LocalPlayer and LocalPlayer:FindFirstChild("PlayerGui") then
-        parentGui = LocalPlayer.PlayerGui
-    end
-    
-    local existingGui = parentGui:FindFirstChild("WallhanEmotesMenu")
+    -- تدمير أي واجهة رقصات قديمة
+    local existingGui = game.CoreGui:FindFirstChild("WallhanEmotesMenu")
     if existingGui then existingGui:Destroy() end
     
-    local ScreenGui = Instance.new("ScreenGui")
+    local ScreenGui = Instance.new("ScreenGui", game.CoreGui)
     ScreenGui.Name = "WallhanEmotesMenu"
     ScreenGui.DisplayOrder = 999
-    ScreenGui.Parent = parentGui -- ✅ تعيين الـ Parent
     
     local MainFrame = Instance.new("Frame", ScreenGui)
-    MainFrame.Size = UDim2.new(0, 300, 0, 200) -- حجم أصغر (القديم)
+    MainFrame.Size = UDim2.new(0, 300, 0, 200) -- حجم أصغر
     MainFrame.Position = UDim2.new(0.5, -150, 0.5, -100)
     MainFrame.BackgroundColor3 = Color3.fromRGB(10, 10, 10)
     MainFrame.Active = true
@@ -87,7 +79,7 @@ local function OpenWallhanEmotes()
     
     -- تأثير عند الضغط
     DanceButton.MouseButton1Click:Connect(function()
-        PlayFEEmote("4077918384157") -- ✅ تم إصلاح الـ ID وجعلها FE
+        PlayFEEmote("104077918384157") -- ✅ تم إصلاح الـ ID وجعلها FE
     end)
 
     -- زر الإغلاق
@@ -110,23 +102,9 @@ end
 local function StartWallhan()
     local _G_States = { ESP = false, Noclip = false, WoodShield = false, AntiFling = false }
     
-    -- ✅ FIX: تعريف LocalPlayer و Mouse هنا
-    LocalPlayer = Players.LocalPlayer
-    Mouse = LocalPlayer:GetMouse()
-    
-    -- ✅ FIX: استخدام PlayerGui لضمان الظهور
-    local parentGui = game.CoreGui
-    if LocalPlayer and LocalPlayer:FindFirstChild("PlayerGui") then
-        parentGui = LocalPlayer.PlayerGui
-    end
-    
-    local sg = Instance.new("ScreenGui")
-    sg.Name = "WallhanHub"
-    sg.ResetOnSpawn = false
-    sg.Parent = parentGui -- ✅ تعيين الـ Parent هنا
-    
+    local sg = Instance.new("ScreenGui", game.CoreGui)
     local Main = Instance.new("Frame", sg)
-    Main.Size, Main.Position = UDim2.new(0, 260, 0, 580), UDim2.new(1, -270, 0.5, -290) -- الواجهة القديمة
+    Main.Size, Main.Position = UDim2.new(0, 260, 0, 580), UDim2.new(1, -270, 0.5, -290)
     Main.BackgroundColor3, Main.Active, Main.Draggable = Color3.fromRGB(0, 0, 0), true, true
     Instance.new("UIStroke", Main).Color = Color3.fromRGB(150, 0, 0)
     Instance.new("UICorner", Main)
@@ -161,7 +139,11 @@ local function StartWallhan()
     CreateButton("SET CHECKPOINT 🚩", function()
         if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
             SavedCheckpoint = LocalPlayer.Character.HumanoidRootPart.CFrame
-            game:GetService("StarterGui"):SetCore("SendNotification", {Title = "Wallhan Hub", Text = "Checkpoint Saved! ✅", Duration = 3})
+            game:GetService("StarterGui"):SetCore("SendNotification", {
+                Title = "Wallhan Hub",
+                Text = "Checkpoint Saved! ✅",
+                Duration = 3
+            })
         end
     end)
 
@@ -169,7 +151,11 @@ local function StartWallhan()
         if SavedCheckpoint and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
             LocalPlayer.Character.HumanoidRootPart.CFrame = SavedCheckpoint
         else
-            game:GetService("StarterGui"):SetCore("SendNotification", {Title = "Wallhan Hub", Text = "No Checkpoint Set! ❌", Duration = 3})
+            game:GetService("StarterGui"):SetCore("SendNotification", {
+                Title = "Wallhan Hub",
+                Text = "No Checkpoint Set! ❌",
+                Duration = 3
+            })
         end
     end)
 
@@ -197,10 +183,9 @@ local function StartWallhan()
     CreateToggle("NOCLIP 🧱", "Noclip")
 
     -- [[ Wood Shield - محسّن (يبقى لأطول مدة، دوران عشوائي، يقذف اللاعبين) ]]
+    local woodParts = {} -- لحفظ الأجزاء التي تم إنشاؤها
     task.spawn(function()
         local angle = 0
-        local woodParts = {} -- لحفظ الأجزاء التي تم إنشاؤها
-        
         while true do
             if _G_States.WoodShield and LocalPlayer.Character then
                 angle = angle + 4
@@ -230,7 +215,7 @@ local function StartWallhan()
                                     al.MaxVelocity = math.huge
                                     al.Responsiveness = 500
                                     
-                                    -- ✅ الدوران العشوائي (يمين، يسار، فوق، تحت)
+                                    -- ✅ FIX: الدوران العشوائي (يمين، يسار، فوق، تحت)
                                     local radius = 3 -- نصف قطر الدوران
                                     local y_offset = math.sin(math.rad(angle * 2)) * 1.5 -- حركة عمودية
                                     a1.Position = Vector3.new(
@@ -241,10 +226,10 @@ local function StartWallhan()
                                     
                                     v.CanCollide = false -- لا يؤثر على اللاعب نفسه
                                     
-                                    -- ✅ يبقى لأطول مدة: لا نستخدم Debris:AddItem
+                                    -- ✅ FIX: يبقى لأطول مدة: لا نستخدم Debris:AddItem
                                     table.insert(woodParts, {part = v, align = al, att = a1})
                                     
-                                    -- ✅ يقذف اللاعبين: إضافة دالة Touch
+                                    -- ✅ FIX: يقذف اللاعبين: إضافة دالة Touch
                                     v.Touched:Connect(function(hit)
                                         local hitHumanoid = hit.Parent:FindFirstChildOfClass("Humanoid")
                                         if hitHumanoid and hitHumanoid.Parent ~= LocalPlayer.Character then
@@ -291,7 +276,7 @@ local function StartWallhan()
         end
     end)
 
-    -- [[ Anti-Ragdoll & Noclip & ESP (كما هي) ]]
+    -- [[ Anti-Ragdoll & Noclip ]]
     RunService.Stepped:Connect(function()
         if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
             LocalPlayer.Character.Humanoid.PlatformStand = false
@@ -303,33 +288,22 @@ local function StartWallhan()
         end
     end)
 
+    -- [[ ESP ]]
     RunService.RenderStepped:Connect(function()
         for _, p in pairs(Players:GetPlayers()) do
             if p ~= LocalPlayer and p.Character then
                 if _G_States.ESP then
                     if not p.Character:FindFirstChild("BoxESP") then
                         local b = Instance.new("BoxHandleAdornment", p.Character)
-                        b.Name = "BoxESP"
-                        b.AlwaysOnTop = true
-                        b.Adornee = p.Character
-                        b.Size = p.Character:GetExtentsSize()
-                        b.Color3 = Color3.fromRGB(255, 0, 0)
-                        b.Transparency = 0.6
-                        
+                        b.Name, b.AlwaysOnTop, b.Adornee = "BoxESP", true, p.Character
+                        b.Size, b.Color3, b.Transparency = p.Character:GetExtentsSize(), Color3.new(1,0,0), 0.6
                         local bill = Instance.new("BillboardGui", p.Character)
-                        bill.Name = "NameESP"
-                        bill.Size = UDim2.new(0, 100, 0, 50)
-                        bill.AlwaysOnTop = true
+                        bill.Name, bill.Size, bill.AlwaysOnTop = "NameESP", UDim2.new(0, 100, 0, 50), true
                         bill.Adornee = p.Character:FindFirstChild("Head")
-                        
                         local lbl = Instance.new("TextLabel", bill)
-                        lbl.Size = UDim2.new(1, 0, 1, 0)
-                        lbl.Text = p.Name
-                        lbl.BackgroundTransparency = 1
-                        lbl.TextColor3 = Color3.new(1, 0, 0)
-                        lbl.Font = Enum.Font.GothamBold
-                        lbl.TextSize = 14
-                        
+                        lbl.Size, lbl.Text = UDim2.new(1, 0, 1, 0), p.Name
+                        lbl.BackgroundTransparency, lbl.TextColor3 = 1, Color3.new(1,0,0)
+                        lbl.Font, lbl.TextSize = Enum.Font.GothamBold, 14
                         Instance.new("UIStroke", lbl).Thickness = 1
                     end
                 else
@@ -350,13 +324,26 @@ local function StartWallhan()
     ToggleBtn.MouseButton1Click:Connect(function() Main.Visible = not Main.Visible end)
 end
 
--- [[ واجهة الدخول القديمة ]]
-local function InitializeKeySystem()
-    
-    -- ✅ FIX: تعريف LocalPlayer و Mouse هنا
-    LocalPlayer = Players.LocalPlayer
-    Mouse = LocalPlayer:GetMouse()
-    
-    local KeyGui = Instance.new("ScreenGui")
-    KeyGui.Name = "Wall
+-- واجهة الدخول
+local KeyGui = Instance.new("ScreenGui", game.CoreGui)
+KeyGui.Name = "WallhanKeySystem"
+local KeyFrame = Instance.new("Frame", KeyGui)
+KeyFrame.Size, KeyFrame.Position = UDim2.new(0, 300, 0, 160), UDim2.new(0.5, -150, 0.5, -80)
+KeyFrame.BackgroundColor3, KeyFrame.Active, KeyFrame.Draggable = Color3.fromRGB(5, 5, 5), true, true
+Instance.new("UICorner", KeyFrame)
+
+local KeyInput = Instance.new("TextBox", KeyFrame)
+KeyInput.Size, KeyInput.Position = UDim2.new(0.8, 0, 0, 40), UDim2.new(0.1, 0, 0.2, 0)
+KeyInput.PlaceholderText, KeyInput.TextColor3 = "Enter Key...", Color3.new(1,1,1)
+KeyInput.BackgroundColor3 = Color3.fromRGB(30,0,0)
+Instance.new("UICorner", KeyInput)
+
+local Submit = Instance.new("TextButton", KeyFrame)
+Submit.Size, Submit.Position = UDim2.new(0.8, 0, 0, 40), UDim2.new(0.1, 0, 0.6, 0)
+Submit.Text, Submit.BackgroundColor3 = "ACTIVATE", Color3.fromRGB(150,0,0)
+Submit.TextColor3, Submit.Font = Color3.new(1,1,1), Enum.Font.GothamBold
+Instance.new("UICorner", Submit)
+
+Submit.MouseButton1Click:Connect(function()
+    if KeyInput.Text == MASTER_KEY or VALID_KEYS[KeyInput.T
 (Content truncated due to size limit. Use page ranges or line ranges to read remaining content)
