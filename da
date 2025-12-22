@@ -9,12 +9,6 @@ local Mouse = LocalPlayer:GetMouse()
 -- متغير لحفظ نقطة التشيك بوينت
 local SavedCheckpoint = nil
 
--- [[ دالة تشغيل الرقصات - تم استبدالها بسكربت خارجي ]]
-local function OpenWallhanEmotes()
-    -- استدعاء سكربت الرقصات الخارجي
-    loadstring(game:HttpGet("https://raw.githubusercontent.com/7yd7/Hub/refs/heads/Branch/GUIS/Emotes.lua"))()
-end
-
 -- [[ START CORE ]]
 local function StartWallhan()
     local _G_States = { ESP = false, Noclip = false, WoodShield = false, AntiFling = false }
@@ -84,9 +78,10 @@ local function StartWallhan()
         end
     end)
 
-    CreateButton("WALLHAN EMOTES 🕺", function()
-        OpenWallhanEmotes()
-    end)
+    -- تم إزالة زر الرقصات لضمان التوافق
+    -- CreateButton("WALLHAN EMOTES 🕺", function()
+    --     OpenWallhanEmotes()
+    -- end)
 
     CreateButton("GIVE TELEPORT TOOL 📍", function()
         local tp = Instance.new("Tool", LocalPlayer.Backpack)
@@ -137,7 +132,7 @@ local function StartWallhan()
             if _G_States.Noclip then
                 for _, v in pairs(LocalPlayer.Character:GetDescendants()) do
                     if v:IsA("BasePart") then v.CanCollide = false end
-                end
+                }
             end
         end
     end)
@@ -192,7 +187,7 @@ Instance.new("UICorner", KeyInput)
 local Submit = Instance.new("TextButton", KeyFrame)
 Submit.Size, Submit.Position = UDim2.new(0.8, 0, 0, 40), UDim2.new(0.1, 0, 0.6, 0)
 Submit.Text, Submit.BackgroundColor3 = "ACTIVATE", Color3.fromRGB(150,0,0)
-Submit.TextColor3, Submit.Font = Color3.new(1,1,1), Enum.Font.GothamBold
+Submit.TextColor3, Submit.Font = Enum.Font.GothamBold, 25
 Instance.new("UICorner", Submit)
 
 Submit.MouseButton1Click:Connect(function()
@@ -200,6 +195,4 @@ Submit.MouseButton1Click:Connect(function()
         KeyGui:Destroy()
         StartWallhan()
     end
-end)
-end
 end)
