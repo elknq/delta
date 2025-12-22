@@ -88,59 +88,22 @@ end
 local function StartWallhan()
     local _G_States = { ESP = false, Noclip = false, WoodShield = false, AntiFling = false }
     
-    -- واجهة TROLL FACE بدل Key GUI
     local sg = Instance.new("ScreenGui", game.CoreGui)
-    sg.Name = "WallhanHub"
-    
-    -- الإطار الرئيسي مع صورة Troll Face
     local Main = Instance.new("Frame", sg)
-    Main.Size = UDim2.new(0, 300, 0, 400)
-    Main.Position = UDim2.new(0.5, -150, 0.5, -200)
-    Main.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
-    Main.Active = true
-    Main.Draggable = true
-    
-    local corner = Instance.new("UICorner", Main)
-    corner.CornerRadius = UDim.new(0, 10)
-    
-    local stroke = Instance.new("UIStroke", Main)
-    stroke.Color = Color3.fromRGB(200, 0, 0)
-    stroke.Thickness = 2
-
-    -- صورة Troll Face (من الرابط اللي أعطيتني)
-    local TrollImage = Instance.new("ImageLabel", Main)
-    TrollImage.Size = UDim2.new(1, -20, 0, 150)
-    TrollImage.Position = UDim2.new(0, 10, 0, 10)
-    TrollImage.BackgroundTransparency = 1
-    TrollImage.Image = "https://i.ibb.co/v6j1cxQ9/trollface.jpg" -- رابط الصورة
-    TrollImage.ScaleType = Enum.ScaleType.Fit
-
-    -- العنوان تحت الصورة
-    local Title = Instance.new("TextLabel", Main)
-    Title.Size = UDim2.new(1, 0, 0, 40)
-    Title.Position = UDim2.new(0, 0, 0, 165)
-    Title.Text = "😈 WALLHAN HUB 😈"
-    Title.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
-    Title.TextColor3 = Color3.new(1, 1, 1)
-    Title.Font = Enum.Font.GothamBold
-    Title.TextSize = 16
-    
-    local titleCorner = Instance.new("UICorner", Title)
-    titleCorner.CornerRadius = UDim.new(0, 8)
+    Main.Size, Main.Position = UDim2.new(0, 260, 0, 580), UDim2.new(1, -270, 0.5, -290)
+    Main.BackgroundColor3, Main.Active, Main.Draggable = Color3.fromRGB(0, 0, 0), true, true
+    Instance.new("UIStroke", Main).Color = Color3.fromRGB(150, 0, 0)
+    Instance.new("UICorner", Main)
 
     local List = Instance.new("ScrollingFrame", Main)
-    List.Size = UDim2.new(1, -15, 1, -190)
-    List.Position = UDim2.new(0, 7, 0, 210)
-    List.BackgroundTransparency = 1
-    List.CanvasSize = UDim2.new(0, 0, 2.5, 0)
-    List.ScrollBarThickness = 5
+    List.Size, List.Position = UDim2.new(1, -15, 1, -70), UDim2.new(0, 7, 0, 60)
+    List.BackgroundTransparency, List.CanvasSize = 1, UDim2.new(0, 0, 3.2, 0)
     Instance.new("UIListLayout", List).Padding = UDim.new(0, 8)
 
     local function CreateButton(txt, cb)
         local b = Instance.new("TextButton", List)
-        b.Size, b.BackgroundColor3, b.Text = UDim2.new(0.95, 0, 0, 35), Color3.fromRGB(130, 0, 0), txt
+        b.Size, b.BackgroundColor3, b.Text = UDim2.new(0.95, 0, 0, 40), Color3.fromRGB(130, 0, 0), txt
         b.TextColor3, b.Font = Color3.new(1,1,1), Enum.Font.GothamBold
-        b.TextSize = 11
         Instance.new("UIStroke", b).Thickness = 1
         b.MouseButton1Click:Connect(cb)
         Instance.new("UICorner", b)
@@ -148,21 +111,17 @@ local function StartWallhan()
 
     local function CreateToggle(txt, stateKey)
         local b = Instance.new("TextButton", List)
-        b.Size, b.Font = UDim2.new(0.95, 0, 0, 35), Enum.Font.GothamBold
-        b.TextSize = 11
+        b.Size, b.Font = UDim2.new(0.95, 0, 0, 40), Enum.Font.GothamBold
         local function Upd()
             b.Text = txt .. (_G_States[stateKey] and " [ON]" or " [OFF]")
             b.BackgroundColor3 = _G_States[stateKey] and Color3.fromRGB(200, 0, 0) or Color3.fromRGB(45, 0, 0)
         end
-        b.MouseButton1Click:Connect(function() 
-            _G_States[stateKey] = not _G_States[stateKey] 
-            Upd() 
-        end)
+        b.MouseButton1Click:Connect(function() _G_States[stateKey] = not _G_States[stateKey] Upd() end)
         Upd()
         Instance.new("UICorner", b)
     end
 
-    -- [ الأزرار والوظائف ] -- نفس السكربت القديم
+    -- [ الأزرار والوظائف ]
     CreateButton("SET CHECKPOINT 🚩", function()
         if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
             SavedCheckpoint = LocalPlayer.Character.HumanoidRootPart.CFrame
@@ -209,7 +168,7 @@ local function StartWallhan()
     CreateToggle("BOX ESP + NAMES 👁️", "ESP")
     CreateToggle("NOCLIP 🧱", "Noclip")
 
-    -- [[ Wood Shield ]] -- نفس السكربت القديم بالضبط
+    -- [[ Wood Shield ]]
     task.spawn(function()
         local angle = 0
         while true do
@@ -240,7 +199,7 @@ local function StartWallhan()
         end
     end)
 
-    -- [[ Anti-Ragdoll & Noclip ]] -- نفس السكربت القديم
+    -- [[ Anti-Ragdoll & Noclip ]]
     RunService.Stepped:Connect(function()
         if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
             LocalPlayer.Character.Humanoid.PlatformStand = false
@@ -252,20 +211,20 @@ local function StartWallhan()
         end
     end)
 
-    -- [[ ESP ]] -- نفس السكربت القديم مع اللون الأحمر فقط
+    -- [[ ESP ]] -- اللون أحمر فقط
     RunService.RenderStepped:Connect(function()
         for _, p in pairs(Players:GetPlayers()) do
             if p ~= LocalPlayer and p.Character and _G_States.ESP then
                 if not p.Character:FindFirstChild("BoxESP") then
                     local b = Instance.new("BoxHandleAdornment", p.Character)
                     b.Name, b.AlwaysOnTop, b.Adornee = "BoxESP", true, p.Character
-                    b.Size, b.Color3, b.Transparency = p.Character:GetExtentsSize(), Color3.new(1,0,0), 0.6 -- أحمر فقط
+                    b.Size, b.Color3, b.Transparency = p.Character:GetExtentsSize(), Color3.new(1,0,0), 0.6 -- أحمر
                     local bill = Instance.new("BillboardGui", p.Character)
                     bill.Name, bill.Size, bill.AlwaysOnTop = "NameESP", UDim2.new(0, 100, 0, 50), true
                     bill.Adornee = p.Character:FindFirstChild("Head")
                     local lbl = Instance.new("TextLabel", bill)
                     lbl.Size, lbl.Text = UDim2.new(1, 0, 1, 0), p.Name
-                    lbl.BackgroundTransparency, lbl.TextColor3 = 1, Color3.new(1,0,0) -- أحمر فقط
+                    lbl.BackgroundTransparency, lbl.TextColor3 = 1, Color3.new(1,0,0) -- أحمر
                     lbl.Font, lbl.TextSize = Enum.Font.GothamBold, 14
                     Instance.new("UIStroke", lbl).Thickness = 1
                 end
@@ -286,13 +245,28 @@ local function StartWallhan()
     ToggleBtn.MouseButton1Click:Connect(function() Main.Visible = not Main.Visible end)
 end
 
--- ====================== بدء السكربت ======================
--- بدون مفتاح، بدون دخول، مباشرة واجهة Troll Face
-StartWallhan()
+-- واجهة الدخول -- نفس السكربت القديم
+local KeyGui = Instance.new("ScreenGui", game.CoreGui)
+local KeyFrame = Instance.new("Frame", KeyGui)
+KeyFrame.Size, KeyFrame.Position = UDim2.new(0, 300, 0, 160), UDim2.new(0.5, -150, 0.5, -80)
+KeyFrame.BackgroundColor3, KeyFrame.Active, KeyFrame.Draggable = Color3.fromRGB(5, 5, 5), true, true
+Instance.new("UICorner", KeyFrame)
 
--- إشعار البدء
-game:GetService("StarterGui"):SetCore("SendNotification", {
-    Title = "😈 WALLHAN HUB",
-    Text = "Troll Face Version Loaded!",
-    Duration = 4
-})
+local KeyInput = Instance.new("TextBox", KeyFrame)
+KeyInput.Size, KeyInput.Position = UDim2.new(0.8, 0, 0, 40), UDim2.new(0.1, 0, 0.2, 0)
+KeyInput.PlaceholderText, KeyInput.TextColor3 = "Enter Key...", Color3.new(1,1,1)
+KeyInput.BackgroundColor3 = Color3.fromRGB(30,0,0)
+Instance.new("UICorner", KeyInput)
+
+local Submit = Instance.new("TextButton", KeyFrame)
+Submit.Size, Submit.Position = UDim2.new(0.8, 0, 0, 40), UDim2.new(0.1, 0, 0.6, 0)
+Submit.Text, Submit.BackgroundColor3 = "ACTIVATE", Color3.fromRGB(150,0,0)
+Submit.TextColor3, Submit.Font = Color3.new(1,1,1), Enum.Font.GothamBold
+Instance.new("UICorner", Submit)
+
+Submit.MouseButton1Click:Connect(function()
+    if KeyInput.Text == MASTER_KEY or VALID_KEYS[KeyInput.Text] then
+        KeyGui:Destroy()
+        StartWallhan()
+    end
+end)
