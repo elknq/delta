@@ -1,163 +1,350 @@
--- █▀█ █░█ █▀▀ █▀▀ █▀█ █▀█  █▀▀ █░█ █▀█
--- █▀▀ █▄█ █▄█ ██▄ █▀▄ █▄█  █▄▄ █▄█ █▀▄
--- PRIVATE VERSION - ALL RIGHTS RESERVED BY WALLHAN
+local MASTER_KEY = "daddy" 
+local VALID_KEYS = {["0x1xxxxjwj"] = true, ["iloveyoudaddywallhan"] = true}
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local LocalPlayer = Players.LocalPlayer
 local Mouse = LocalPlayer:GetMouse()
 
--- ====================== 🔧 VARIABLES ======================
+-- متغيرات Wood Shield الجديدة
 local SavedCheckpoint = nil
-local WoodShieldActive = false
-local ShieldAngle = 0
-local ShieldParts = {}
-local OriginalWoodPositions = {}
-local AttachedWoods = {}
+local WoodShieldAngle = 0
+local ActiveWoodShield = false
+local WoodShieldConnection = nil
+local ShieldParts = {} -- لتخزين الخشب المسحوب
+local ShieldAttachments = {} -- المرفقات
 
-local _G_States = {
-    ESP = false,
-    Noclip = false,
-    WoodShield = false,
-    AntiFling = false,
-    Fly = false
-}
-
--- ====================== 😈 TROLL FACE UI ======================
-local function CreateTrollFaceUI()
-    -- تدمير الواجهات القديمة
-    local oldUI = game.CoreGui:FindFirstChild("TrollFaceUI")
-    if oldUI then oldUI:Destroy() end
+-- [[ دالة تشغيل الرقصات المدمجة - سورس كود كامل ]]
+local function OpenWallhanEmotes()
+    local ScreenGui = Instance.new("ScreenGui", game.CoreGui)
+    ScreenGui.Name = "WallhanEmotesMenu"
     
-    local oldHub = game.CoreGui:FindFirstChild("WallhanHub")
-    if oldHub then oldHub:Destroy() end
-    
-    local ScreenGui = Instance.new("ScreenGui")
-    ScreenGui.Name = "TrollFaceUI"
-    ScreenGui.Parent = game.CoreGui
-    ScreenGui.ResetOnSpawn = false
-
-    -- الإطار الرئيسي
-    local MainFrame = Instance.new("Frame")
-    MainFrame.Size = UDim2.new(0, 350, 0, 500)
-    MainFrame.Position = UDim2.new(0.5, -175, 0.5, -250)
-    MainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-    MainFrame.BackgroundTransparency = 0.1
+    local MainFrame = Instance.new("Frame", ScreenGui)
+    MainFrame.Size = UDim2.new(0, 400, 0, 320)
+    MainFrame.Position = UDim2.new(0.5, -200, 0.5, -160)
+    MainFrame.BackgroundColor3 = Color3.fromRGB(10, 10, 10)
     MainFrame.Active = true
     MainFrame.Draggable = true
-    MainFrame.Parent = ScreenGui
+    Instance.new("UICorner", MainFrame)
+    local stroke = Instance.new("UIStroke", MainFrame)
+    stroke.Color = Color3.fromRGB(200, 0, 0)
+    stroke.Thickness = 2
 
-    local UICorner = Instance.new("UICorner")
-    UICorner.CornerRadius = UDim.new(0, 15)
-    UICorner.Parent = MainFrame
+    local Title = Instance.new("TextLabel", MainFrame)
+    Title.Size = UDim2.new(1, 0, 0, 45)
+    Title.Text = "🕺 WALLHAN EMOTES 🕺"
+    Title.BackgroundColor3 = Color3.fromRGB(150, 0, 0)
+    Title.TextColor3 = Color3.new(1, 1, 1)
+    Title.Font = Enum.Font.GothamBold
+    Title.TextSize = 18
+    Instance.new("UICorner", Title)
 
-    local UIStroke = Instance.new("UIStroke")
-    UIStroke.Color = Color3.fromRGB(255, 215, 0) -- لون ذهبي
-    UIStroke.Thickness = 3
-    UIStroke.Parent = MainFrame
+    local Scroll = Instance.new("ScrollingFrame", MainFrame)
+    Scroll.Size = UDim2.new(1, -10, 1, -60)
+    Scroll.Position = UDim2.new(0, 5, 0, 50)
+    Scroll.BackgroundTransparency = 1
+    Scroll.CanvasSize = UDim2.new(0, 0, 4, 0)
+    local layout = Instance.new("UIGridLayout", Scroll)
+    layout.CellSize = UDim2.new(0, 120, 0, 40)
+    layout.Padding = UDim2.new(0, 8, 0, 8)
 
-    -- صورة Troll Face
-    local TrollImage = Instance.new("ImageLabel")
+    -- قائمة IDs الرقصات
+    local emotes = {
+        ["Griddy"] = 9606471821, ["Bugha"] = 7212401314, ["Billy"] = 3338340150,
+        ["Dancin"] = 5103431709, ["Floss"] = 2825749343, ["Take The L"] = 2825729114,
+        ["Default"] = 507771019, ["Robot"] = 507771955, ["Hype"] = 3696748324,
+        ["Orange Justice"] = 3696756105, ["Best Mates"] = 3696761332
+    }
+
+    for name, id in pairs(emotes) do
+        local btn = Instance.new("TextButton", Scroll)
+        btn.Text = name
+        btn.BackgroundColor3 = Color3.fromRGB(40, 0, 0)
+        btn.TextColor3 = Color3.new(1, 1, 1)
+        btn.Font = Enum.Font.GothamBold
+        btn.TextSize = 12
+        Instance.new("UICorner", btn)
+        btn.MouseButton1Click:Connect(function()
+            local anim = Instance.new("Animation")
+            anim.AnimationId = "rbxassetid://"..id
+            local load = LocalPlayer.Character.Humanoid:LoadAnimation(anim)
+            load:Play()
+        end)
+    end
+
+    local Close = Instance.new("TextButton", MainFrame)
+    Close.Size = UDim2.new(0, 30, 0, 30)
+    Close.Position = UDim2.new(1, -35, 0, 7)
+    Close.Text = "X"
+    Close.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+    Close.TextColor3 = Color3.new(1, 1, 1)
+    Close.MouseButton1Click:Connect(function() ScreenGui:Destroy() end)
+end
+
+-- ====================== 🌪️ WOOD SHIELD المحسن ======================
+local function EnableWoodShield()
+    if ActiveWoodShield then return end
+    ActiveWoodShield = true
+    WoodShieldAngle = 0
+    
+    -- تنظيف أي درع قديم
+    if WoodShieldConnection then
+        WoodShieldConnection:Disconnect()
+    end
+    
+    for _, part in pairs(ShieldParts) do
+        if part then
+            part:Destroy()
+        end
+    end
+    
+    for _, att in pairs(ShieldAttachments) do
+        if att then
+            att:Destroy()
+        end
+    end
+    
+    ShieldParts = {}
+    ShieldAttachments = {}
+    
+    -- بدء الدرع الجديد
+    WoodShieldConnection = RunService.Heartbeat:Connect(function()
+        if not ActiveWoodShield or not LocalPlayer.Character then 
+            if WoodShieldConnection then
+                WoodShieldConnection:Disconnect()
+            end
+            return 
+        end
+        
+        local hrp = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+        if not hrp then return end
+        
+        WoodShieldAngle = WoodShieldAngle + 0.04
+        
+        -- البحث عن خشب في ماب Ragdoll Engine
+        for _, v in pairs(workspace:GetDescendants()) do
+            if v:IsA("BasePart") and not v.Anchored and not v:IsDescendantOf(LocalPlayer.Character) 
+               and not v.Parent:FindFirstChild("Humanoid") then
+                
+                -- تحسين كشف الخشب
+                local isWood = false
+                local woodName = v.Name:lower()
+                
+                if woodName:find("wood") then isWood = true
+                elseif woodName:find("door") then isWood = true
+                elseif woodName:find("plank") then isWood = true
+                elseif woodName:find("log") then isWood = true
+                elseif v.Material == Enum.Material.Wood then isWood = true
+                elseif v.BrickColor == BrickColor.new("Reddish brown") then isWood = true
+                elseif v.BrickColor == BrickColor.new("Brown") then isWood = true
+                elseif v.BrickColor == BrickColor.new("Burnt Sienna") then isWood = true
+                end
+                
+                if isWood and (v.Position - hrp.Position).Magnitude < 50 then
+                    -- إذا كان الخشب جديد أو فقدناه سابقاً
+                    if not ShieldParts[v] then
+                        ShieldParts[v] = true
+                        
+                        -- تنظيف أي BodyMovers قديمة
+                        for _, child in pairs(v:GetChildren()) do
+                            if child:IsA("BodyMover") or child:IsA("AlignPosition") or child:IsA("Attachment") then
+                                child:Destroy()
+                            end
+                        end
+                    end
+                    
+                    -- إنشاء BodyPosition قوية
+                    local bodyPos = Instance.new("BodyPosition")
+                    bodyPos.Parent = v
+                    bodyPos.MaxForce = Vector3.new(80000, 80000, 80000) -- قوة عالية
+                    bodyPos.P = 20000 -- تحكم دقيق
+                    bodyPos.D = 1500 -- منع التذبذب
+                    
+                    -- حساب موقع في دائرة
+                    local radius = 7 + math.sin(WoodShieldAngle * 2) * 1.5
+                    local angleOffset = WoodShieldAngle
+                    local x = math.cos(angleOffset) * radius
+                    local z = math.sin(angleOffset) * radius
+                    
+                    -- مع ارتفاع متغير
+                    local y = 2 + math.sin(WoodShieldAngle * 3) * 0.5
+                    
+                    bodyPos.Position = hrp.Position + Vector3.new(x, y, z)
+                    
+                    -- إضافة قوة طرد للاعبين الآخرين
+                    for _, player in pairs(Players:GetPlayers()) do
+                        if player ~= LocalPlayer and player.Character then
+                            local enemyHrp = player.Character:FindFirstChild("HumanoidRootPart")
+                            if enemyHrp and (enemyHrp.Position - v.Position).Magnitude < 6 then
+                                -- قوة طرد قوية
+                                local pushDirection = (enemyHrp.Position - v.Position).Unit
+                                local pushForce = pushDirection * 120 + Vector3.new(0, 30, 0)
+                                enemyHrp.Velocity = enemyHrp.Velocity + pushForce
+                                
+                                -- تأثير إضافي لجعلهم يطيرون
+                                enemyHrp.RotVelocity = Vector3.new(
+                                    math.random(-50, 50),
+                                    math.random(-50, 50),
+                                    math.random(-50, 50)
+                                )
+                            end
+                        end
+                    end
+                    
+                    -- جعل الخشب خفيفاً وسهل الحركة
+                    v.CustomPhysicalProperties = PhysicalProperties.new(0.3, 0.2, 0.3)
+                    v.CanCollide = false
+                    v.Massless = true
+                    
+                    -- إعادة استخدام BodyPosition كل 0.8 ثانية
+                    game:GetService("Debris"):AddItem(bodyPos, 0.8)
+                end
+            end
+        end
+        
+        -- إعادة جذب الخشب إذا ابتعد
+        for woodPart, _ in pairs(ShieldParts) do
+            if woodPart and woodPart.Parent then
+                local distance = (woodPart.Position - hrp.Position).Magnitude
+                if distance > 60 then
+                    -- إذا ابتعد الخشب، نعيد جذبه بقوة
+                    local bodyPos = Instance.new("BodyPosition")
+                    bodyPos.Parent = woodPart
+                    bodyPos.MaxForce = Vector3.new(100000, 100000, 100000)
+                    bodyPos.Position = hrp.Position + Vector3.new(0, 5, 0)
+                    bodyPos.P = 25000
+                    
+                    game:GetService("Debris"):AddItem(bodyPos, 0.5)
+                end
+            end
+        end
+    end)
+    
+    game:GetService("StarterGui"):SetCore("SendNotification", {
+        Title = "🌪️ WOOD SHIELD",
+        Text = "ACTIVATED - Stays with you permanently!",
+        Duration = 3
+    })
+end
+
+local function DisableWoodShield()
+    ActiveWoodShield = false
+    
+    if WoodShieldConnection then
+        WoodShieldConnection:Disconnect()
+        WoodShieldConnection = nil
+    end
+    
+    -- إعادة الخصائص الأصلية للخشب
+    for woodPart, _ in pairs(ShieldParts) do
+        if woodPart and woodPart.Parent then
+            woodPart.CustomPhysicalProperties = nil
+            woodPart.CanCollide = true
+            woodPart.Massless = false
+        end
+    end
+    
+    ShieldParts = {}
+    ShieldAttachments = {}
+    
+    game:GetService("StarterGui"):SetCore("SendNotification", {
+        Title = "🌪️ WOOD SHIELD",
+        Text = "DEACTIVATED",
+        Duration = 2
+    })
+end
+
+-- ====================== واجهة TROLL FACE ======================
+local function CreateTrollFaceUI()
+    -- تدمير الواجهات القديمة
+    local oldUI = game.CoreGui:FindFirstChild("WallhanHub")
+    if oldUI then oldUI:Destroy() end
+    
+    local ScreenGui = Instance.new("ScreenGui", game.CoreGui)
+    ScreenGui.Name = "TrollFaceHub"
+    ScreenGui.ResetOnSpawn = false
+
+    -- الإطار الرئيسي مع صورة Troll Face
+    local MainFrame = Instance.new("Frame", ScreenGui)
+    MainFrame.Size = UDim2.new(0, 300, 0, 400)
+    MainFrame.Position = UDim2.new(0.5, -150, 0.5, -200)
+    MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+    MainFrame.Active = true
+    MainFrame.Draggable = true
+    
+    local corner = Instance.new("UICorner", MainFrame)
+    corner.CornerRadius = UDim.new(0, 10)
+    
+    local stroke = Instance.new("UIStroke", MainFrame)
+    stroke.Color = Color3.fromRGB(255, 215, 0) -- لون ذهبي
+    stroke.Thickness = 3
+
+    -- صورة Troll Face (مباشرة من Roblox)
+    local TrollImage = Instance.new("ImageLabel", MainFrame)
     TrollImage.Size = UDim2.new(1, -20, 0, 150)
     TrollImage.Position = UDim2.new(0, 10, 0, 10)
     TrollImage.BackgroundTransparency = 1
-    TrollImage.Image = "http://www.roblox.com/asset/?id=1260873262" -- Troll Face
+    TrollImage.Image = "http://www.roblox.com/asset/?id=1260873262" -- Troll Face المشهور
     TrollImage.ScaleType = Enum.ScaleType.Fit
-    TrollImage.Parent = MainFrame
 
-    -- العنوان
-    local Title = Instance.new("TextLabel")
-    Title.Size = UDim2.new(1, 0, 0, 50)
+    -- العنوان تحت الصورة
+    local Title = Instance.new("TextLabel", MainFrame)
+    Title.Size = UDim2.new(1, 0, 0, 40)
     Title.Position = UDim2.new(0, 0, 0, 165)
-    Title.Text = "😈 WALLHAN TROLL HUB 😈"
+    Title.Text = "😈 WALLHAN HUB 😈"
     Title.BackgroundColor3 = Color3.fromRGB(255, 215, 0)
     Title.TextColor3 = Color3.new(0, 0, 0)
     Title.Font = Enum.Font.GothamBold
-    Title.TextSize = 18
+    Title.TextSize = 16
     Title.TextStrokeTransparency = 0
     Title.TextStrokeColor3 = Color3.new(0, 0, 0)
-    Title.Parent = MainFrame
-
-    local TitleCorner = Instance.new("UICorner")
-    TitleCorner.CornerRadius = UDim.new(0, 10)
-    TitleCorner.Parent = Title
+    
+    local titleCorner = Instance.new("UICorner", Title)
+    titleCorner.CornerRadius = UDim.new(0, 8)
 
     -- قائمة الأزرار
-    local ButtonFrame = Instance.new("ScrollingFrame")
-    ButtonFrame.Size = UDim2.new(1, -20, 0, 220)
-    ButtonFrame.Position = UDim2.new(0, 10, 0, 220)
+    local ButtonFrame = Instance.new("ScrollingFrame", MainFrame)
+    ButtonFrame.Size = UDim2.new(1, -20, 0, 170)
+    ButtonFrame.Position = UDim2.new(0, 10, 0, 210)
     ButtonFrame.BackgroundTransparency = 1
-    ButtonFrame.CanvasSize = UDim2.new(0, 0, 0, 400)
+    ButtonFrame.CanvasSize = UDim2.new(0, 0, 0, 350)
     ButtonFrame.ScrollBarThickness = 5
-    ButtonFrame.Parent = MainFrame
+    
+    local layout = Instance.new("UIListLayout", ButtonFrame)
+    layout.Padding = UDim.new(0, 8)
 
-    local ButtonLayout = Instance.new("UIListLayout")
-    ButtonLayout.Padding = UDim.new(0, 10)
-    ButtonLayout.Parent = ButtonFrame
-
-    -- دالة إنشاء أزرار الترويل
-    local function CreateTrollButton(text, callback, color)
-        local btn = Instance.new("TextButton")
-        btn.Size = UDim2.new(1, 0, 0, 40)
+    -- دالة إنشاء أزرار (نفس وظائف السكربت الأصلي)
+    local function CreateButton(text, callback, color)
+        local btn = Instance.new("TextButton", ButtonFrame)
+        btn.Size = UDim2.new(1, 0, 0, 35)
         btn.Text = text
-        btn.BackgroundColor3 = color or Color3.fromRGB(50, 50, 0)
+        btn.BackgroundColor3 = color or Color3.fromRGB(50, 0, 0)
         btn.TextColor3 = Color3.new(1, 1, 1)
         btn.Font = Enum.Font.GothamBold
-        btn.TextSize = 14
-        btn.Parent = ButtonFrame
+        btn.TextSize = 12
         
-        local btnCorner = Instance.new("UICorner")
-        btnCorner.CornerRadius = UDim.new(0, 8)
-        btnCorner.Parent = btn
-        
-        local btnStroke = Instance.new("UIStroke")
-        btnStroke.Color = Color3.fromRGB(255, 215, 0)
-        btnStroke.Thickness = 2
-        btnStroke.Parent = btn
+        local btnCorner = Instance.new("UICorner", btn)
+        btnCorner.CornerRadius = UDim.new(0, 6)
         
         btn.MouseButton1Click:Connect(callback)
-        
-        -- تأثيرات
-        btn.MouseEnter:Connect(function()
-            game:GetService("TweenService"):Create(btn, TweenInfo.new(0.2), {
-                BackgroundColor3 = Color3.fromRGB(80, 80, 0)
-            }):Play()
-        end)
-        
-        btn.MouseLeave:Connect(function()
-            game:GetService("TweenService"):Create(btn, TweenInfo.new(0.2), {
-                BackgroundColor3 = color or Color3.fromRGB(50, 50, 0)
-            }):Play()
-        end)
         
         return btn
     end
 
-    -- دالة إنشاء أزرار التقلبات
-    local function CreateToggleButton(text, stateKey, enableFunc, disableFunc)
-        local btn = Instance.new("TextButton")
-        btn.Size = UDim2.new(1, 0, 0, 40)
+    -- دالة إنشاء توقفات (بنفس منطق السكربت الأصلي)
+    local function CreateToggle(text, stateKey, enableFunc, disableFunc)
+        local btn = Instance.new("TextButton", ButtonFrame)
+        btn.Size = UDim2.new(1, 0, 0, 35)
         btn.Font = Enum.Font.GothamBold
-        btn.TextSize = 14
-        btn.Parent = ButtonFrame
-        
-        local btnCorner = Instance.new("UICorner")
-        btnCorner.CornerRadius = UDim.new(0, 8)
-        btnCorner.Parent = btn
-        
-        local btnStroke = Instance.new("UIStroke")
-        btnStroke.Thickness = 2
-        btnStroke.Parent = btn
+        btn.TextSize = 12
         
         local function UpdateButton()
             if _G_States[stateKey] then
-                btn.Text = "✅ " .. text .. " ✅"
-                btn.BackgroundColor3 = Color3.fromRGB(0, 60, 0)
-                btnStroke.Color = Color3.fromRGB(0, 255, 0)
+                btn.Text = text .. " [ON]"
+                btn.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
             else
-                btn.Text = "❌ " .. text .. " ❌"
-                btn.BackgroundColor3 = Color3.fromRGB(60, 0, 0)
-                btnStroke.Color = Color3.fromRGB(255, 0, 0)
+                btn.Text = text .. " [OFF]"
+                btn.BackgroundColor3 = Color3.fromRGB(50, 0, 0)
             end
         end
         
@@ -174,257 +361,78 @@ local function CreateTrollFaceUI()
         end)
         
         UpdateButton()
+        Instance.new("UICorner", btn)
         
         return btn
     end
 
-    -- ====================== 🎮 FEATURES ======================
+    -- المتغيرات العامة (نفس السكربت الأصلي)
+    local _G_States = { ESP = false, Noclip = false, WoodShield = false, AntiFling = false }
 
-    -- 1. 🕺 REAL WORKING EMOTES
-    CreateTrollButton("🎵 OPEN EMOTES MENU", function()
-        -- قائمة رقصات حقيقية ومجربة
-        local emotes = {
-            {"Floss", 6831077249},           -- 💃 Floss Dance
-            {"Dab", 6821793285},             -- 👊 Dab
-            {"Orange Justice", 6831064676},  -- 🍊 Orange Justice
-            {"Take The L", 6821794689},      -- 👎 Take The L
-            {"Hype", 6821794578},            -- 🎉 Hype
-            {"Robot", 6831077150},           -- 🤖 Robot
-            {"Default Dance", 6821794267},   -- 💃 Default
-            {"L Dance", 6831063987},         -- L Dance
-            {"Griddy", 10476115777},         -- 🕺 Griddy
-            {"Bugha", 10476114676},          -- 💃 Bugha
-            {"Billy Bounce", 10476113986}    -- 👏 Billy
-        }
-        
-        -- إنشاء واجهة الرقصات
-        local EmoteGui = Instance.new("ScreenGui", game.CoreGui)
-        EmoteGui.Name = "WallhanEmotes"
-        
-        local EmoteFrame = Instance.new("Frame", EmoteGui)
-        EmoteFrame.Size = UDim2.new(0, 300, 0, 350)
-        EmoteFrame.Position = UDim2.new(0.5, -150, 0.5, -175)
-        EmoteFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-        EmoteFrame.Active = true
-        EmoteFrame.Draggable = true
-        
-        Instance.new("UICorner", EmoteFrame)
-        
-        local Title = Instance.new("TextLabel", EmoteFrame)
-        Title.Size = UDim2.new(1, 0, 0, 40)
-        Title.Text = "🎵 REAL EMOTES 🎵"
-        Title.BackgroundColor3 = Color3.fromRGB(255, 215, 0)
-        Title.TextColor3 = Color3.new(0, 0, 0)
-        Title.Font = Enum.Font.GothamBold
-        Title.TextSize = 16
-        Instance.new("UICorner", Title)
-        
-        local Scroll = Instance.new("ScrollingFrame", EmoteFrame)
-        Scroll.Size = UDim2.new(1, -10, 1, -50)
-        Scroll.Position = UDim2.new(0, 5, 0, 45)
-        Scroll.BackgroundTransparency = 1
-        Scroll.ScrollBarThickness = 5
-        
-        local Layout = Instance.new("UIGridLayout", Scroll)
-        Layout.CellSize = UDim2.new(0.45, 0, 0, 35)
-        Layout.CellPadding = UDim2.new(0.05, 0, 0.05, 0)
-        
-        for _, emote in pairs(emotes) do
-            local name, id = emote[1], emote[2]
-            local btn = Instance.new("TextButton", Scroll)
-            btn.Text = name
-            btn.BackgroundColor3 = Color3.fromRGB(50, 0, 0)
-            btn.TextColor3 = Color3.new(1, 1, 1)
-            btn.Font = Enum.Font.GothamBold
-            btn.TextSize = 12
-            Instance.new("UICorner", btn)
-            
-            btn.MouseButton1Click:Connect(function()
-                if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
-                    local animation = Instance.new("Animation")
-                    animation.AnimationId = "rbxassetid://" .. id
-                    local track = LocalPlayer.Character.Humanoid:LoadAnimation(animation)
-                    track:Play()
-                    
-                    game:GetService("StarterGui"):SetCore("SendNotification", {
-                        Title = "😈 WALLHAN EMOTES",
-                        Text = "Playing: " .. name,
-                        Duration = 2
-                    })
-                end
-            end)
-        end
-        
-        local CloseBtn = Instance.new("TextButton", EmoteFrame)
-        CloseBtn.Size = UDim2.new(0, 80, 0, 30)
-        CloseBtn.Position = UDim2.new(0.5, -40, 1, -35)
-        CloseBtn.Text = "❌ CLOSE"
-        CloseBtn.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
-        CloseBtn.TextColor3 = Color3.new(1, 1, 1)
-        CloseBtn.Font = Enum.Font.GothamBold
-        CloseBtn.TextSize = 14
-        Instance.new("UICorner", CloseBtn)
-        
-        CloseBtn.MouseButton1Click:Connect(function()
-            EmoteGui:Destroy()
-        end)
-    end, Color3.fromRGB(100, 0, 100))
-
-    -- 2. 🌪️ ULTIMATE WOOD SHIELD (من السكربت الأصلي مع تحسينات)
-    local woodShieldBtn = CreateToggleButton("🌪️ WOOD SHIELD", "WoodShield", 
-        function()
-            WoodShieldActive = true
-            ShieldAngle = 0
-            ShieldParts = {}
-            AttachedWoods = {}
-            
-            local shieldConnection
-            shieldConnection = RunService.Heartbeat:Connect(function()
-                if not WoodShieldActive or not LocalPlayer.Character then 
-                    shieldConnection:Disconnect()
-                    return 
-                end
-                
-                local hrp = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-                if not hrp then return end
-                
-                ShieldAngle = ShieldAngle + 0.06
-                
-                -- البحث عن خشب في الماب
-                for _, v in pairs(workspace:GetDescendants()) do
-                    if v:IsA("BasePart") and not v.Anchored and not v:IsDescendantOf(LocalPlayer.Character) then
-                        local isWood = false
-                        
-                        -- تحسين كشف الخشب
-                        if v.Name:lower():find("wood") then isWood = true
-                        elseif v.Name:lower():find("door") then isWood = true
-                        elseif v.Name:lower():find("plank") then isWood = true
-                        elseif v.Name:lower():find("log") then isWood = true
-                        elseif v.Material == Enum.Material.Wood then isWood = true
-                        elseif v.BrickColor == BrickColor.new("Reddish brown") then isWood = true
-                        elseif v.BrickColor == BrickColor.new("Brown") then isWood = true
-                        end
-                        
-                        if isWood and (v.Position - hrp.Position).Magnitude < 40 then
-                            if not AttachedWoods[v] then
-                                AttachedWoods[v] = true
-                                table.insert(ShieldParts, v)
-                                
-                                -- حفظ الموقع الأصلي
-                                OriginalWoodPositions[v] = {
-                                    Position = v.Position,
-                                    Parent = v.Parent,
-                                    CFrame = v.CFrame
-                                }
-                            end
-                            
-                            -- تنظيف BodyMovers القديمة
-                            for _, child in pairs(v:GetChildren()) do
-                                if child:IsA("BodyMover") or child:IsA("AlignPosition") then
-                                    child:Destroy()
-                                end
-                            end
-                            
-                            -- إنشاء BodyPosition جديدة
-                            local bodyPos = Instance.new("BodyPosition")
-                            bodyPos.Parent = v
-                            bodyPos.MaxForce = Vector3.new(50000, 50000, 50000)
-                            bodyPos.P = 15000
-                            bodyPos.D = 1200
-                            
-                            -- حساب موقع في دائرة حول اللاعب
-                            local radius = 6 + math.sin(ShieldAngle * 3) * 1
-                            local woodIndex = #ShieldParts
-                            local angle = ShieldAngle + (woodIndex * math.pi / 3)
-                            
-                            local targetPos = hrp.Position + Vector3.new(
-                                math.cos(angle) * radius,
-                                2 + math.sin(ShieldAngle * 4 + woodIndex) * 0.8,
-                                math.sin(angle) * radius
-                            )
-                            
-                            bodyPos.Position = targetPos
-                            v.CanCollide = false
-                            v.Massless = true
-                            
-                            -- قوة دفاع
-                            for _, player in pairs(Players:GetPlayers()) do
-                                if player ~= LocalPlayer and player.Character then
-                                    local enemyHrp = player.Character:FindFirstChild("HumanoidRootPart")
-                                    if enemyHrp and (enemyHrp.Position - v.Position).Magnitude < 5 then
-                                        local push = (enemyHrp.Position - v.Position).Unit * 80
-                                        enemyHrp.Velocity = enemyHrp.Velocity + push + Vector3.new(0, 20, 0)
-                                    end
-                                end
-                            end
-                            
-                            -- إعادة استخدام BodyPosition
-                            game:GetService("Debris"):AddItem(bodyPos, 0.8)
-                        end
-                    end
-                end
-            end)
-            
+    -- ====================== الأزرار (نفس وظائف السكربت الأصلي) ======================
+    
+    CreateButton("SET CHECKPOINT 🚩", function()
+        if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+            SavedCheckpoint = LocalPlayer.Character.HumanoidRootPart.CFrame
             game:GetService("StarterGui"):SetCore("SendNotification", {
-                Title = "🌪️ WOOD SHIELD",
-                Text = "ACTIVATED - Pulling wood from map!",
+                Title = "Wallhan Hub",
+                Text = "Checkpoint Saved! ✅",
                 Duration = 3
             })
-        end,
-        function()
-            WoodShieldActive = false
-            
-            -- إعادة الخشب لمكانه الأصلي
-            for wood, originalData in pairs(OriginalWoodPositions) do
-                if wood and wood.Parent then
-                    local bodyPos = Instance.new("BodyPosition")
-                    bodyPos.Parent = wood
-                    bodyPos.MaxForce = Vector3.new(50000, 50000, 50000)
-                    bodyPos.Position = originalData.Position
-                    bodyPos.P = 8000
-                    
-                    task.wait(0.3)
-                    bodyPos:Destroy()
-                    wood.CanCollide = true
-                    wood.Massless = false
-                end
-            end
-            
-            ShieldParts = {}
-            AttachedWoods = {}
-            OriginalWoodPositions = {}
         end
-    )
+    end, Color3.fromRGB(0, 100, 0))
 
-    -- 3. 🛡️ ANTI-FLING
-    CreateToggleButton("🛡️ ANTI-FLING", "AntiFling",
+    CreateButton("TP TO CHECKPOINT 🌀", function()
+        if SavedCheckpoint and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+            LocalPlayer.Character.HumanoidRootPart.CFrame = SavedCheckpoint
+        else
+            game:GetService("StarterGui"):SetCore("SendNotification", {
+                Title = "Wallhan Hub",
+                Text = "No Checkpoint Set! ❌",
+                Duration = 3
+            })
+        end
+    end, Color3.fromRGB(0, 100, 0))
+
+    CreateButton("RANDOM PLAYER TP 🎲", function()
+        local plrs = Players:GetPlayers()
+        local rP = plrs[math.random(1, #plrs)]
+        if rP and rP ~= LocalPlayer and rP.Character then
+            LocalPlayer.Character:SetPrimaryPartCFrame(rP.Character.HumanoidRootPart.CFrame + Vector3.new(0, 5, 0))
+        end
+    end, Color3.fromRGB(100, 0, 100))
+
+    CreateButton("WALLHAN EMOTES 🕺", OpenWallhanEmotes, Color3.fromRGB(100, 0, 100))
+
+    CreateButton("GIVE TELEPORT TOOL 📍", function()
+        local tp = Instance.new("Tool", LocalPlayer.Backpack)
+        tp.Name, tp.RequiresHandle = "Wallhan TP 📍", false
+        tp.Activated:Connect(function() 
+            if LocalPlayer.Character and Mouse.Hit then
+                LocalPlayer.Character:MoveTo(Mouse.Hit.p)
+            end
+        end)
+    end, Color3.fromRGB(0, 0, 100))
+
+    -- التوقفات مع دوال Wood Shield المحسنة
+    CreateToggle("ULTIMATE ANTI-FLING 🛡️", "AntiFling", 
         function()
-            local antiFlingConnection
-            antiFlingConnection = RunService.Heartbeat:Connect(function()
-                if not _G_States.AntiFling or not LocalPlayer.Character then 
-                    antiFlingConnection:Disconnect()
-                    return 
-                end
-                
-                local hrp = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-                if hrp then
-                    if hrp.AssemblyLinearVelocity.Magnitude > 120 then
-                        hrp.Velocity = hrp.Velocity * 0.2
-                    end
-                    
-                    if hrp.AssemblyAngularVelocity.Magnitude > 60 then
+            RunService.Heartbeat:Connect(function()
+                if _G_States.AntiFling and LocalPlayer.Character then
+                    local hrp = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+                    if hrp and hrp.AssemblyLinearVelocity.Magnitude > 100 then
+                        hrp.Velocity = Vector3.new(0, 0, 0)
                         hrp.RotVelocity = Vector3.new(0, 0, 0)
                     end
                 end
             end)
         end,
-        function()
-            -- لا شيء
-        end
+        function() end
     )
-
-    -- 4. 👁️ ESP
-    CreateToggleButton("👁️ BOX ESP", "ESP",
+    
+    CreateToggle("WOOD SHIELD 🌪️", "WoodShield", EnableWoodShield, DisableWoodShield)
+    
+    CreateToggle("BOX ESP + NAMES 👁️", "ESP", 
         function()
             _G_States.ESP = true
             
@@ -435,34 +443,36 @@ local function CreateTrollFaceUI()
                 local head = char:WaitForChild("Head", 2)
                 if not head then return end
                 
-                -- Box
+                -- Box ESP (أحمر فقط كما طلبت)
                 local box = Instance.new("BoxHandleAdornment")
-                box.Name = "TrollESP_Box"
+                box.Name = "BoxESP"
                 box.Adornee = char
                 box.AlwaysOnTop = true
                 box.Size = char:GetExtentsSize()
-                box.Color3 = Color3.new(1, 0.5, 0)
-                box.Transparency = 0.5
+                box.Color3 = Color3.new(1, 0, 0) -- أحمر
+                box.Transparency = 0.6
                 box.ZIndex = 10
                 box.Parent = char
                 
-                -- Name
+                -- Name Tag (أحمر فقط)
                 local billboard = Instance.new("BillboardGui")
-                billboard.Name = "TrollESP_Name"
-                billboard.Size = UDim2.new(0, 200, 0, 40)
+                billboard.Name = "NameESP"
+                billboard.Size = UDim2.new(0, 100, 0, 50)
                 billboard.AlwaysOnTop = true
-                billboard.StudsOffset = Vector3.new(0, 3, 0)
+                billboard.StudsOffset = Vector3.new(0, 3.5, 0)
                 billboard.Adornee = head
                 billboard.Parent = char
                 
-                local label = Instance.new("TextLabel", billboard)
-                label.Size = UDim2.new(1, 0, 1, 0)
-                label.BackgroundTransparency = 1
-                label.Text = player.Name
-                label.TextColor3 = Color3.new(1, 0.5, 0)
-                label.Font = Enum.Font.GothamBold
-                label.TextSize = 14
-                label.TextStrokeTransparency = 0.5
+                local textLabel = Instance.new("TextLabel", billboard)
+                textLabel.Size = UDim2.new(1, 0, 1, 0)
+                textLabel.BackgroundTransparency = 1
+                textLabel.Text = player.Name
+                textLabel.TextColor3 = Color3.new(1, 0, 0) -- أحمر
+                textLabel.TextStrokeTransparency = 0
+                textLabel.TextStrokeColor3 = Color3.new(0, 0, 0)
+                textLabel.Font = Enum.Font.GothamBold
+                textLabel.TextSize = 14
+                Instance.new("UIStroke", textLabel).Thickness = 1
             end
             
             for _, player in pairs(Players:GetPlayers()) do
@@ -476,19 +486,20 @@ local function CreateTrollFaceUI()
             
             for _, player in pairs(Players:GetPlayers()) do
                 if player.Character then
-                    local box = player.Character:FindFirstChild("TrollESP_Box")
-                    local name = player.Character:FindFirstChild("TrollESP_Name")
+                    local box = player.Character:FindFirstChild("BoxESP")
+                    local nameTag = player.Character:FindFirstChild("NameESP")
                     
                     if box then box:Destroy() end
-                    if name then name:Destroy() end
+                    if nameTag then nameTag:Destroy() end
                 end
             end
         end
     )
-
-    -- 5. 🧱 NOCLIP
-    CreateToggleButton("🧱 NOCLIP", "Noclip",
+    
+    CreateToggle("NOCLIP 🧱", "Noclip", 
         function()
+            _G_States.Noclip = true
+            
             local noclipConnection
             noclipConnection = RunService.Stepped:Connect(function()
                 if not _G_States.Noclip or not LocalPlayer.Character then 
@@ -508,161 +519,53 @@ local function CreateTrollFaceUI()
         end
     )
 
-    -- 6. 💾 CHECKPOINT SYSTEM
-    CreateTrollButton("💾 SAVE CHECKPOINT", function()
-        if LocalPlayer.Character and LocalPlayer.Character.HumanoidRootPart then
-            SavedCheckpoint = LocalPlayer.Character.HumanoidRootPart.CFrame
-            game:GetService("StarterGui"):SetCore("SendNotification", {
-                Title = "😈 CHECKPOINT",
-                Text = "Position Saved!",
-                Duration = 3
-            })
-        end
-    end, Color3.fromRGB(0, 100, 100))
-
-    CreateTrollButton("🌀 LOAD CHECKPOINT", function()
-        if SavedCheckpoint and LocalPlayer.Character and LocalPlayer.Character.HumanoidRootPart then
-            LocalPlayer.Character.HumanoidRootPart.CFrame = SavedCheckpoint
-        end
-    end, Color3.fromRGB(0, 100, 100))
-
-    -- 7. 🎲 RANDOM TP
-    CreateTrollButton("🎲 TELEPORT TO RANDOM", function()
-        local targets = {}
-        for _, player in pairs(Players:GetPlayers()) do
-            if player ~= LocalPlayer and player.Character and player.Character.HumanoidRootPart then
-                table.insert(targets, player)
-            end
-        end
-        
-        if #targets > 0 then
-            local target = targets[math.random(1, #targets)]
-            LocalPlayer.Character:SetPrimaryPartCFrame(target.Character.HumanoidRootPart.CFrame)
-        end
-    end, Color3.fromRGB(100, 0, 100))
-
-    -- 8. 📍 TP TOOL
-    CreateTrollButton("📍 TP TOOL", function()
-        local tool = Instance.new("Tool", LocalPlayer.Backpack)
-        tool.Name = "😈 Troll TP"
-        tool.ToolTip = "Click to teleport"
-        tool.RequiresHandle = false
-        
-        tool.Activated:Connect(function()
-            if LocalPlayer.Character and Mouse.Hit then
-                LocalPlayer.Character:MoveTo(Mouse.Hit.p + Vector3.new(0, 3, 0))
-            end
-        end)
-        
-        game:GetService("StarterGui"):SetCore("SendNotification", {
-            Title = "😈 TP TOOL",
-            Text = "Added to your backpack!",
-            Duration = 3
-        })
-    end, Color3.fromRGB(0, 0, 100))
-
-    -- 9. 😈 TROLL FEATURES
-    CreateTrollButton("🌀 SPIN PLAYERS", function()
-        for _, player in pairs(Players:GetPlayers()) do
-            if player ~= LocalPlayer and player.Character then
-                local hrp = player.Character:FindFirstChild("HumanoidRootPart")
-                if hrp then
-                    hrp.RotVelocity = Vector3.new(0, 150, 0)
-                end
-            end
-        end
-    end, Color3.fromRGB(255, 100, 0))
-
-    CreateTrollButton("🎈 BALLOON PLAYERS", function()
-        for _, player in pairs(Players:GetPlayers()) do
-            if player ~= LocalPlayer and player.Character then
-                local hrp = player.Character:FindFirstChild("HumanoidRootPart")
-                if hrp then
-                    hrp.Velocity = Vector3.new(0, 150, 0)
-                end
-            end
-        end
-    end, Color3.fromRGB(255, 100, 0))
-
-    CreateTrollButton("⚡ ELECTROCUTE", function()
-        for _, player in pairs(Players:GetPlayers()) do
-            if player ~= LocalPlayer and player.Character then
-                local humanoid = player.Character:FindFirstChild("Humanoid")
-                if humanoid then
-                    humanoid:TakeDamage(10)
-                end
-            end
-        end
-    end, Color3.fromRGB(255, 50, 50))
-
-    -- زر إغلاق
-    local CloseButton = Instance.new("TextButton")
-    CloseButton.Size = UDim2.new(0, 80, 0, 35)
-    CloseButton.Position = UDim2.new(0.5, -40, 1, -40)
+    -- زر إغلاق الواجهة
+    local CloseButton = Instance.new("TextButton", MainFrame)
+    CloseButton.Size = UDim2.new(0, 80, 0, 30)
+    CloseButton.Position = UDim2.new(0.5, -40, 1, -35)
     CloseButton.Text = "❌ CLOSE"
     CloseButton.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
     CloseButton.TextColor3 = Color3.new(1, 1, 1)
     CloseButton.Font = Enum.Font.GothamBold
     CloseButton.TextSize = 14
-    CloseButton.Parent = MainFrame
-    
-    local CloseCorner = Instance.new("UICorner")
-    CloseCorner.CornerRadius = UDim.new(0, 8)
-    CloseCorner.Parent = CloseButton
+    Instance.new("UICorner", CloseButton)
     
     CloseButton.MouseButton1Click:Connect(function()
         ScreenGui:Destroy()
     end)
 
     -- زر صغير لإعادة فتح الواجهة
-    local ToggleButton = Instance.new("TextButton")
+    local ToggleButton = Instance.new("TextButton", ScreenGui)
     ToggleButton.Size = UDim2.new(0, 50, 0, 50)
     ToggleButton.Position = UDim2.new(0, 20, 0, 20)
-    ToggleButton.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+    ToggleButton.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
     ToggleButton.BackgroundTransparency = 0.2
     ToggleButton.Text = "😈"
     ToggleButton.TextColor3 = Color3.fromRGB(255, 215, 0)
     ToggleButton.Font = Enum.Font.GothamBold
     ToggleButton.TextSize = 24
     ToggleButton.Draggable = true
-    ToggleButton.Parent = ScreenGui
     
-    local ToggleCorner = Instance.new("UICorner")
-    ToggleCorner.CornerRadius = UDim.new(1, 0)
-    ToggleCorner.Parent = ToggleButton
+    local toggleCorner = Instance.new("UICorner", ToggleButton)
+    toggleCorner.CornerRadius = UDim.new(1, 0)
     
-    local ToggleStroke = Instance.new("UIStroke")
-    ToggleStroke.Color = Color3.fromRGB(255, 215, 0)
-    ToggleStroke.Thickness = 2
-    ToggleStroke.Parent = ToggleButton
+    local toggleStroke = Instance.new("UIStroke", ToggleButton)
+    toggleStroke.Color = Color3.fromRGB(255, 215, 0)
+    toggleStroke.Thickness = 2
     
     ToggleButton.MouseButton1Click:Connect(function()
         MainFrame.Visible = not MainFrame.Visible
         ToggleButton.Text = MainFrame.Visible and "😈" or "🎮"
     end)
-
-    -- إشعار البدء
-    game:GetService("StarterGui"):SetCore("SendNotification", {
-        Title = "😈 WALLHAN TROLL HUB",
-        Text = "PRIVATE VERSION LOADED!",
-        Duration = 5
-    })
-    
-    print("========================================")
-    print("😈 WALLHAN TROLL HUB - PRIVATE VERSION")
-    print("👑 ALL RIGHTS RESERVED")
-    print("✅ Wood Shield: FIXED & STRONGER")
-    print("✅ Emotes: REAL WORKING DANCES")
-    print("✅ ESP: FULLY FUNCTIONAL")
-    print("========================================")
 end
 
--- ====================== 🚀 START THE SCRIPT ======================
--- بدون مفتاح، بدون واجهة دخول، مباشر!
+-- ====================== بدء السكربت مباشرة ======================
+-- بدون واجهة دخول، بدون مفاتيح، مباشرة Troll Face
 CreateTrollFaceUI()
 
--- منع تدمير السكربت
-local script = Instance.new("Script")
-script.Name = "WallhanProtection"
-script.Disabled = true
-script.Parent = game:GetService("ServerScriptService")
+-- إشعار البدء
+game:GetService("StarterGui"):SetCore("SendNotification", {
+    Title = "😈 WALLHAN HUB",
+    Text = "Troll Face Version Loaded!",
+    Duration = 4
+})
