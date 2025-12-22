@@ -1,11 +1,10 @@
--- Wallhan Hub - Private Version
+-- Wallhan Hub - Fixed Execution Order
 -- DEVELOPER ACCESS ONLY
 
-local MASTER_KEY = "daddy" -- MASTER KEY HIDDEN IN ACTUAL SCRIPT
+local MASTER_KEY = "daddy"
 local VALID_KEYS = {
     ["0x1xxxxjwj"] = true, 
     ["iloveyoudaddywallhan"] = true
-    -- ADD PRIVATE KEYS HERE
 }
 
 local Players = game:GetService("Players")
@@ -20,17 +19,15 @@ local WoodShieldAngle = 0
 local WoodShieldConnection = nil
 local ActiveWoodParts = {}
 local LastWoodPositions = {}
-local MainGUI = nil
-local KeyGUIVisible = true
 
--- ========== دالة الرقصات المحسنة ==========
+-- ====================== أولاً: تعريف الدوال ======================
+
 local function OpenWallhanEmotes()
     local existingGui = game.CoreGui:FindFirstChild("WallhanEmotesMenu")
     if existingGui then existingGui:Destroy() end
     
     local ScreenGui = Instance.new("ScreenGui", game.CoreGui)
     ScreenGui.Name = "WallhanEmotesMenu"
-    ScreenGui.ResetOnSpawn = false
     
     local MainFrame = Instance.new("Frame", ScreenGui)
     MainFrame.Size = UDim2.new(0, 400, 0, 320)
@@ -39,6 +36,7 @@ local function OpenWallhanEmotes()
     MainFrame.Active = true
     MainFrame.Draggable = true
     Instance.new("UICorner", MainFrame)
+    
     local stroke = Instance.new("UIStroke", MainFrame)
     stroke.Color = Color3.fromRGB(200, 0, 0)
     stroke.Thickness = 2
@@ -66,14 +64,10 @@ local function OpenWallhanEmotes()
         ["Griddy"] = 9606471821, ["Bugha"] = 7212401314, ["Billy"] = 3338340150,
         ["Dancin"] = 5103431709, ["Floss"] = 2825749343, ["Take The L"] = 2825729114,
         ["Default"] = 507771019, ["Robot"] = 507771955, ["Hype"] = 3696748324,
-        ["Orange Justice"] = 3696756105, ["Best Mates"] = 3696761332,
-        ["L"] = 2825732154, ["Zany"] = 6363537781, ["Electro"] = 5917459364
+        ["Orange Justice"] = 3696756105, ["Best Mates"] = 3696761332
     }
 
-    local buttonCount = 0
     for name, id in pairs(emotes) do
-        buttonCount = buttonCount + 1
-        
         local btn = Instance.new("TextButton")
         btn.Parent = Scroll
         btn.Size = UDim2.new(0.9, 0, 0, 40)
@@ -94,7 +88,7 @@ local function OpenWallhanEmotes()
         end)
     end
 
-    Scroll.CanvasSize = UDim2.new(0, 0, 0, buttonCount * 48)
+    Scroll.CanvasSize = UDim2.new(0, 0, 0, #emotes * 48)
 
     local Close = Instance.new("TextButton", MainFrame)
     Close.Size = UDim2.new(0, 30, 0, 30)
@@ -111,7 +105,7 @@ local function OpenWallhanEmotes()
     end)
 end
 
--- ========== Wood Shield المحسّن ==========
+-- Wood Shield الدالة
 local function EnableWoodShield()
     if WoodShieldActive then return end
     WoodShieldActive = true
@@ -156,8 +150,7 @@ local function EnableWoodShield()
                     if not LastWoodPositions[v] then
                         LastWoodPositions[v] = {
                             Position = v.Position,
-                            Parent = v.Parent,
-                            CFrame = v.CFrame
+                            Parent = v.Parent
                         }
                     end
                     
@@ -169,58 +162,17 @@ local function EnableWoodShield()
                     
                     local bodyPos = Instance.new("BodyPosition")
                     bodyPos.Parent = v
-                    bodyPos.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
-                    bodyPos.P = 15000
-                    bodyPos.D = 800
+                    bodyPos.MaxForce = Vector3.new(40000, 40000, 40000)
+                    bodyPos.P = 12000
                     
-                    local radius = 7 + math.sin(WoodShieldAngle * 2) * 1.5
-                    local angleOffset = WoodShieldAngle + (ActiveWoodParts[v] or 0)
+                    local radius = 6
+                    local angleOffset = WoodShieldAngle
                     local x = math.cos(angleOffset) * radius
                     local z = math.sin(angleOffset) * radius
                     
-                    bodyPos.Position = hrp.Position + Vector3.new(x, 2, z)
-                    
-                    for _, player in pairs(Players:GetPlayers()) do
-                        if player ~= LocalPlayer and player.Character then
-                            local enemyHrp = player.Character:FindFirstChild("HumanoidRootPart")
-                            if enemyHrp and (enemyHrp.Position - v.Position).Magnitude < 4 then
-                                local pushDirection = (enemyHrp.Position - v.Position).Unit
-                                enemyHrp.Velocity = pushDirection * 80 + Vector3.new(0, 20, 0)
-                            end
-                        end
-                    end
-                    
-                    v.CustomPhysicalProperties = PhysicalProperties.new(0.5, 0.3, 0.4)
-                    v.CanCollide = false
-                    ActiveWoodParts[v] = angleOffset
-                    game:GetService("Debris"):AddItem(bodyPos, 1)
-                end
-            end
-        end
-        
-        for wood, originalPos in pairs(LastWoodPositions) do
-            if wood and wood.Parent and (wood.Position - hrp.Position).Magnitude > 60 then
-                local bodyPos = Instance.new("BodyPosition")
-                bodyPos.Parent = wood
-                bodyPos.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
-                bodyPos.Position = originalPos.Position
-                bodyPos.P = 8000
-                
-                task.wait(0.5)
-                if bodyPos then bodyPos:Destroy() end
-                wood.CustomPhysicalProperties = nil
-                wood.CanCollide = true
-                LastWoodPositions[wood] = nil
-                ActiveWoodParts[wood] = nil
-            end
-        end
-        
-        if not woodFound then
-            task.wait(5)
-            if not woodFound then
-                WoodShieldActive = false
-                if WoodShieldConnection then
-                    WoodShieldConnection:Disconnect()
+                    bodyPos.Position = hrp.Position + Vector3.new(x, 1.5, z)
+                    ActiveWoodParts[v] = bodyPos
+                    game:GetService("Debris"):AddItem(bodyPos, 0.5)
                 end
             end
         end
@@ -235,16 +187,8 @@ local function DisableWoodShield()
         WoodShieldConnection = nil
     end
     
-    for wood, originalPos in pairs(LastWoodPositions) do
-        if wood and wood.Parent then
-            local bodyPos = Instance.new("BodyPosition")
-            bodyPos.Parent = wood
-            bodyPos.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
-            bodyPos.Position = originalPos.Position
-            bodyPos.P = 5000
-            
-            task.wait(0.3)
-            if bodyPos then bodyPos:Destroy() end
+    for wood, _ in pairs(ActiveWoodParts) do
+        if wood then
             wood.CustomPhysicalProperties = nil
             wood.CanCollide = true
         end
@@ -254,111 +198,71 @@ local function DisableWoodShield()
     LastWoodPositions = {}
 end
 
--- ========== واجهة المفتاح PRIVATE ==========
+-- ====================== ثانياً: واجهة المفتاح ======================
 local function CreateKeyGui()
     local KeyGui = Instance.new("ScreenGui", game.CoreGui)
     KeyGui.Name = "WallhanKeyGui"
-    KeyGui.ResetOnSpawn = false
     
     local KeyFrame = Instance.new("Frame", KeyGui)
-    KeyFrame.Size = UDim2.new(0, 320, 0, 200)
-    KeyFrame.Position = UDim2.new(0.5, -160, 0.5, -100)
+    KeyFrame.Size = UDim2.new(0, 300, 0, 180)
+    KeyFrame.Position = UDim2.new(0.5, -150, 0.5, -90)
     KeyFrame.BackgroundColor3 = Color3.fromRGB(10, 10, 10)
     KeyFrame.Active = true
     KeyFrame.Draggable = true
     
     local uiCorner = Instance.new("UICorner", KeyFrame)
-    uiCorner.CornerRadius = UDim.new(0, 10)
+    uiCorner.CornerRadius = UDim.new(0, 8)
     
     local uiStroke = Instance.new("UIStroke", KeyFrame)
     uiStroke.Color = Color3.fromRGB(200, 0, 0)
     uiStroke.Thickness = 2
     
     local Title = Instance.new("TextLabel", KeyFrame)
-    Title.Size = UDim2.new(1, 0, 0, 50)
-    Title.Text = "🔐 PRIVATE ACCESS"
+    Title.Size = UDim2.new(1, 0, 0, 40)
+    Title.Text = "🔐 WALLHAN HUB"
     Title.BackgroundColor3 = Color3.fromRGB(150, 0, 0)
     Title.TextColor3 = Color3.new(1, 1, 1)
     Title.Font = Enum.Font.GothamBold
     Title.TextSize = 16
     Instance.new("UICorner", Title)
     
-    local HelpText = Instance.new("TextLabel", KeyFrame)
-    HelpText.Size = UDim2.new(0.8, 0, 0, 30)
-    HelpText.Position = UDim2.new(0.1, 0, 0.25, 0)
-    HelpText.Text = "Enter Private Key"
-    HelpText.TextColor3 = Color3.fromRGB(200, 200, 200)
-    HelpText.BackgroundTransparency = 1
-    HelpText.Font = Enum.Font.Gotham
-    HelpText.TextSize = 12
-    HelpText.TextXAlignment = Enum.TextXAlignment.Left
-    
-    local InputContainer = Instance.new("Frame", KeyFrame)
-    InputContainer.Size = UDim2.new(0.8, 0, 0, 40)
-    InputContainer.Position = UDim2.new(0.1, 0, 0.4, 0)
-    InputContainer.BackgroundColor3 = Color3.fromRGB(30, 0, 0)
-    Instance.new("UICorner", InputContainer)
-    
-    local KeyInput = Instance.new("TextBox", InputContainer)
-    KeyInput.Size = UDim2.new(0.85, 0, 1, 0)
+    local KeyInput = Instance.new("TextBox", KeyFrame)
+    KeyInput.Size = UDim2.new(0.8, 0, 0, 35)
+    KeyInput.Position = UDim2.new(0.1, 0, 0.3, 0)
     KeyInput.PlaceholderText = "Enter key..."
     KeyInput.Text = ""
     KeyInput.TextColor3 = Color3.new(1, 1, 1)
-    KeyInput.BackgroundTransparency = 1
+    KeyInput.BackgroundColor3 = Color3.fromRGB(30, 0, 0)
     KeyInput.Font = Enum.Font.Gotham
     KeyInput.TextSize = 14
-    
-    local ClearButton = Instance.new("TextButton", InputContainer)
-    ClearButton.Size = UDim2.new(0.15, 0, 0.7, 0)
-    ClearButton.Position = UDim2.new(0.85, 0, 0.15, 0)
-    ClearButton.Text = "✕"
-    ClearButton.BackgroundColor3 = Color3.fromRGB(80, 0, 0)
-    ClearButton.TextColor3 = Color3.new(1, 1, 1)
-    ClearButton.Font = Enum.Font.GothamBold
-    ClearButton.TextSize = 12
-    Instance.new("UICorner", ClearButton)
+    Instance.new("UICorner", KeyInput)
     
     local Submit = Instance.new("TextButton", KeyFrame)
-    Submit.Size = UDim2.new(0.8, 0, 0, 45)
-    Submit.Position = UDim2.new(0.1, 0, 0.7, 0)
-    Submit.Text = "🔓 VERIFY"
+    Submit.Size = UDim2.new(0.8, 0, 0, 40)
+    Submit.Position = UDim2.new(0.1, 0, 0.65, 0)
+    Submit.Text = "ACTIVATE"
     Submit.BackgroundColor3 = Color3.fromRGB(150, 0, 0)
     Submit.TextColor3 = Color3.new(1, 1, 1)
     Submit.Font = Enum.Font.GothamBold
     Submit.TextSize = 14
     Instance.new("UICorner", Submit)
     
-    ClearButton.MouseButton1Click:Connect(function()
-        KeyInput.Text = ""
-        KeyInput:CaptureFocus()
-    end)
-    
     Submit.MouseButton1Click:Connect(function()
         local enteredKey = KeyInput.Text
         
-        -- التحقق من المفتاح بدون عرضه
-        local isValid = false
-        if enteredKey == MASTER_KEY then
-            isValid = true
-        elseif VALID_KEYS[enteredKey] then
-            isValid = true
-        end
-        
-        if isValid then
+        if enteredKey == MASTER_KEY or VALID_KEYS[enteredKey] then
             Submit.Text = "✅ SUCCESS"
             Submit.BackgroundColor3 = Color3.fromRGB(0, 150, 0)
             
             task.wait(0.5)
             KeyGui:Destroy()
-            KeyGUIVisible = false
-            StartWallhan()
+            StartWallhan() -- استدعاء الواجهة الرئيسية
         else
             local originalText = Submit.Text
-            Submit.Text = "❌ DENIED"
+            Submit.Text = "❌ WRONG KEY"
             Submit.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
             
             KeyInput.Text = ""
-            KeyInput.PlaceholderText = "Access denied..."
             
             task.wait(0.8)
             Submit.Text = originalText
@@ -366,18 +270,21 @@ local function CreateKeyGui()
         end
     end)
     
-    task.wait(0.3)
+    task.wait(0.1)
     KeyInput:CaptureFocus()
 end
 
--- ========== الواجهة الرئيسية ==========
+-- ====================== ثالثاً: الواجهة الرئيسية ======================
 local function StartWallhan()
-    local _G_States = { ESP = false, Noclip = false, WoodShield = false, AntiFling = false }
+    local _G_States = { 
+        ESP = false, 
+        Noclip = false, 
+        WoodShield = false, 
+        AntiFling = false 
+    }
     
     local sg = Instance.new("ScreenGui", game.CoreGui)
     sg.Name = "WallhanHubMain"
-    sg.ResetOnSpawn = false
-    MainGUI = sg
     
     local Main = Instance.new("Frame", sg)
     Main.Size = UDim2.new(0, 260, 0, 580)
@@ -395,7 +302,9 @@ local function StartWallhan()
     List.BackgroundTransparency = 1
     List.CanvasSize = UDim2.new(0, 0, 3.2, 0)
     List.ScrollBarThickness = 6
-    Instance.new("UIListLayout", List).Padding = UDim.new(0, 8)
+    
+    local layout = Instance.new("UIListLayout", List)
+    layout.Padding = UDim.new(0, 8)
 
     local function CreateButton(txt, cb)
         local b = Instance.new("TextButton", List)
@@ -416,7 +325,7 @@ local function StartWallhan()
         b.Font = Enum.Font.GothamBold
         b.TextSize = 12
         
-        local function Upd()
+        local function UpdateButton()
             b.Text = txt .. (_G_States[stateKey] and " [ON]" or " [OFF]")
             b.BackgroundColor3 = _G_States[stateKey] and Color3.fromRGB(200, 0, 0) or Color3.fromRGB(45, 0, 0)
         end
@@ -428,13 +337,15 @@ local function StartWallhan()
             else
                 if disableFunc then disableFunc() end
             end
-            Upd() 
+            UpdateButton() 
         end)
-        Upd()
+        
+        UpdateButton()
         Instance.new("UICorner", b)
         return b
     end
 
+    -- الأزرار الأساسية
     CreateButton("SET CHECKPOINT 🚩", function()
         if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
             SavedCheckpoint = LocalPlayer.Character.HumanoidRootPart.CFrame
@@ -485,6 +396,7 @@ local function StartWallhan()
         end)
     end)
     
+    -- التقلبات
     CreateToggle("ULTIMATE ANTI-FLING 🛡️", "AntiFling", 
         function()
             RunService.Heartbeat:Connect(function()
@@ -497,15 +409,14 @@ local function StartWallhan()
                 end
             end)
         end,
-        function()
-            -- لا شيء خاص للإيقاف
-        end
+        function() end
     )
     
     CreateToggle("WOOD SHIELD 🌪️", "WoodShield", EnableWoodShield, DisableWoodShield)
     CreateToggle("BOX ESP + NAMES 👁️", "ESP")
     CreateToggle("NOCLIP 🧱", "Noclip")
 
+    -- Noclip Loop
     RunService.Stepped:Connect(function()
         if _G_States.Noclip and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
             LocalPlayer.Character.Humanoid.PlatformStand = false
@@ -515,6 +426,7 @@ local function StartWallhan()
         end
     end)
 
+    -- ESP Loop
     RunService.RenderStepped:Connect(function()
         for _, p in pairs(Players:GetPlayers()) do
             if p ~= LocalPlayer and p.Character then
@@ -551,6 +463,7 @@ local function StartWallhan()
         end
     end)
 
+    -- زر تبديل الواجهة
     local ToggleBtn = Instance.new("TextButton", sg)
     ToggleBtn.Size = UDim2.new(0, 50, 0, 50)
     ToggleBtn.Position = UDim2.new(0, 20, 0, 20)
@@ -567,15 +480,13 @@ local function StartWallhan()
         Main.Visible = not Main.Visible 
     end)
     
+    -- إشعار التحميل
     game:GetService("StarterGui"):SetCore("SendNotification", {
         Title = "WALLHAN HUB",
-        Text = "Private Version Activated ✅",
+        Text = "Hub Activated Successfully! ✅",
         Duration = 4
     })
 end
 
--- ========== بدء النظام ==========
-CreateKeyGui() -- هذا السطر كان ناقص!
-
--- ملاحظة للمطور: عندما تنشر السكربت، امسح السطر التالي
--- MASTER_KEY = "YOUR_PRIVATE_KEY_HERE" -- حذف هذا السطر قبل النشر!
+-- ====================== أخيراً: بدء التشغيل ======================
+CreateKeyGui() -- هذا السطر الأخير فقط
