@@ -1,9 +1,8 @@
 --[[
     ╔══════════════════════════════════════════╗
-    ║       WALLHAN HUB - FINAL V9             ║
-    ║  ✅ FIX: Wood Shield Speed & Radius      ║
-    ║  ✅ FIX: Dance Function (Load Animation) ║
-    ║  ✅ ADD: Teleport Tool Button            ║
+    ║       WALLHAN HUB - FINAL V10            ║
+    ║  ✅ FIX: Wood Shield Speed & Rotation    ║
+    ║  ✅ FIX: Dance Function (Stop & Play)    ║
     ╚══════════════════════════════════════════╝
 ]]
 
@@ -17,10 +16,22 @@ local Mouse = LocalPlayer:GetMouse()
 local SavedCheckpoint = nil
 local _G_States = { WoodShield = false, Noclip = false, ESP = false }
 
+-- [[ دالة إيقاف الرقصات الحالية ]]
+local function StopCurrentEmotes()
+    local humanoid = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid")
+    if humanoid then
+        for _, track in ipairs(humanoid:GetPlayingAnimationTracks()) do
+            track:Stop()
+        end
+    end
+end
+
 -- [[ دالة تشغيل الرقصات - Beautiful Dance (FE) ]]
 local function PlayFEEmote(animationId)
     if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
-        -- ✅ FIX: استخدام AnimationTrack بدلاً من LoadAnimation مباشرة
+        
+        StopCurrentEmotes() -- ✅ FIX: إيقاف الرقصات الحالية أولاً
+        
         local humanoid = LocalPlayer.Character.Humanoid
         local animator = humanoid:FindFirstChildOfClass("Animator") or Instance.new("Animator", humanoid)
         
@@ -45,7 +56,6 @@ local function GiveTeleportTool()
     tp.Name = "Wallhan TP 📍"
     tp.RequiresHandle = false
     
-    -- ✅ FIX: استخدام LocalPlayer:GetMouse() داخل الدالة لضمان تحديثها
     tp.Activated:Connect(function() 
         local currentMouse = LocalPlayer:GetMouse()
         if currentMouse.Hit then
@@ -74,7 +84,7 @@ local function CreateMinimalUI()
     
     -- الإطار الرئيسي (القائمة)
     local Main = Instance.new("Frame", sg)
-    Main.Size = UDim2.new(0, 200, 0, 350) -- تم زيادة الحجم لإضافة زر جديد
+    Main.Size = UDim2.new(0, 200, 0, 350)
     Main.Position = UDim2.new(1, -210, 0.5, -175)
     Main.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
     Main.Active = true
@@ -84,7 +94,7 @@ local function CreateMinimalUI()
     
     local Title = Instance.new("TextLabel", Main)
     Title.Size = UDim2.new(1, 0, 0, 30)
-    Title.Text = "Wallhan Hub V9"
+    Title.Text = "Wallhan Hub V10"
     Title.BackgroundColor3 = Color3.fromRGB(150, 0, 0)
     Title.TextColor3 = Color3.new(1, 1, 1)
     Title.Font = Enum.Font.SourceSansBold
@@ -142,7 +152,7 @@ local function CreateMinimalUI()
         PlayFEEmote("104077918384157")
     end)
     
-    CreateButton("GIVE TELEPORT TOOL 📍", GiveTeleportTool) -- ✅ ADD: زر التيليبورت
+    CreateButton("GIVE TELEPORT TOOL 📍", GiveTeleportTool)
     
     CreateButton("SET CHECKPOINT", function()
         if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
@@ -184,8 +194,8 @@ task.spawn(function()
     local angle = 0
     while true do
         if _G_States.WoodShield and LocalPlayer.Character then
-            -- ✅ FIX: زيادة سرعة الدوران
-            angle = angle + 10 
+            -- ✅ FIX: زيادة سرعة الدوران بشكل كبير
+            angle = angle + 150 
             local hrp = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
             if hrp then
                 
@@ -210,9 +220,9 @@ task.spawn(function()
                                 al.MaxVelocity = math.huge
                                 al.Responsiveness = 500
                                 
-                                -- ✅ FIX: تقليل نصف قطر الدوران ليكون أقرب للجسم
+                                -- ✅ FIX: الدوران بالعرض فقط (إزالة الحركة العمودية)
                                 local radius = 1.5 
-                                local y_offset = math.sin(math.rad(angle * 2)) * 0.5 -- تقليل الحركة العمودية
+                                local y_offset = 0 -- إزالة الحركة العمودية
                                 a1.Position = Vector3.new(
                                     math.cos(math.rad(angle)) * radius, 
                                     y_offset, 
@@ -230,7 +240,7 @@ task.spawn(function()
                                         local targetHRP = hitHumanoid.Parent:FindFirstChild("HumanoidRootPart")
                                         if targetHRP then
                                             local direction = (targetHRP.Position - hrp.Position).Unit
-                                            targetHRP.Velocity = direction * 500 + Vector3.new(0, 100, 0) -- قوة قذف عالية جداً
+                                            targetHRP.Velocity = direction * 1000 + Vector3.new(0, 100, 0) -- قوة قذف عالية جداً
                                         end
                                     end
                                 end)
@@ -243,7 +253,7 @@ task.spawn(function()
                 for _, data in pairs(woodParts) do
                     if data.att and data.att.Parent then
                         local radius = 1.5
-                        local y_offset = math.sin(math.rad(angle * 2)) * 0.5
+                        local y_offset = 0
                         data.att.Position = Vector3.new(
                             math.cos(math.rad(angle)) * radius, 
                             y_offset, 
