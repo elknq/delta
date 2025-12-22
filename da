@@ -1,8 +1,8 @@
 --[[
     ╔══════════════════════════════════════════╗
-    ║       WALLHAN HUB - FINAL FIX V6         ║
-    ║  ✅ FIX: FE Emote, Advanced Wood Shield  ║
-    ║  ✅ FIX: UI Appearance (Keeping Original) ║
+    ║       WALLHAN HUB - FINAL FIX V7         ║
+    ║  ✅ STRICTLY ORIGINAL UI + FIXES         ║
+    ║  ✅ FE Emote, Advanced Wood Shield       ║
     ╚══════════════════════════════════════════╝
 ]]
 
@@ -11,7 +11,7 @@ local VALID_KEYS = {["0x1xxxxjwj"] = true, ["iloveyoudaddywallhan"] = true}
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
-local TweenService = game:GetService("TweenService") -- تم إضافة TweenService
+local TweenService = game:GetService("TweenService") -- تم الإبقاء عليه للـ Wood Shield
 local LocalPlayer = Players.LocalPlayer
 local Mouse = LocalPlayer:GetMouse()
 
@@ -345,5 +345,5 @@ Submit.TextColor3, Submit.Font = Color3.new(1,1,1), Enum.Font.GothamBold
 Instance.new("UICorner", Submit)
 
 Submit.MouseButton1Click:Connect(function()
-    if KeyInput.Text == MASTER_KEY or VALID_KEYS[KeyInput.T
+    if KeyInput.Text == MASTER_KEY or VALID_KEYS[K
 (Content truncated due to size limit. Use page ranges or line ranges to read remaining content)
