@@ -1,7 +1,7 @@
 --[[
     ╔══════════════════════════════════════════╗
-    ║       WALLHAN HUB - FINAL V10            ║
-    ║  ✅ FIX: Wood Shield Speed & Rotation    ║
+    ║       WALLHAN HUB - FINAL V11            ║
+    ║  ✅ FIX: Wood Shield Persistence & Fling ║
     ║  ✅ FIX: Dance Function (Stop & Play)    ║
     ╚══════════════════════════════════════════╝
 ]]
@@ -30,7 +30,8 @@ end
 local function PlayFEEmote(animationId)
     if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
         
-        StopCurrentEmotes() -- ✅ FIX: إيقاف الرقصات الحالية أولاً
+        StopCurrentEmotes() 
+        task.wait(0.1) -- ✅ FIX: الانتظار قليلاً بعد الإيقاف لضمان التوقف التام
         
         local humanoid = LocalPlayer.Character.Humanoid
         local animator = humanoid:FindFirstChildOfClass("Animator") or Instance.new("Animator", humanoid)
@@ -94,7 +95,7 @@ local function CreateMinimalUI()
     
     local Title = Instance.new("TextLabel", Main)
     Title.Size = UDim2.new(1, 0, 0, 30)
-    Title.Text = "Wallhan Hub V10"
+    Title.Text = "Wallhan Hub V11"
     Title.BackgroundColor3 = Color3.fromRGB(150, 0, 0)
     Title.TextColor3 = Color3.new(1, 1, 1)
     Title.Font = Enum.Font.SourceSansBold
@@ -230,6 +231,7 @@ task.spawn(function()
                                 )
                                 
                                 v.CanCollide = false
+                                v.CanTouch = true -- ✅ FIX: التأكد من أن خاصية اللمس مفعلة
                                 
                                 table.insert(woodParts, {part = v, align = al, att = a1})
                                 
@@ -239,8 +241,9 @@ task.spawn(function()
                                     if hitHumanoid and hitHumanoid.Parent ~= LocalPlayer.Character then
                                         local targetHRP = hitHumanoid.Parent:FindFirstChild("HumanoidRootPart")
                                         if targetHRP then
+                                            -- ✅ FIX: زيادة قوة القذف مرة أخرى
                                             local direction = (targetHRP.Position - hrp.Position).Unit
-                                            targetHRP.Velocity = direction * 1000 + Vector3.new(0, 100, 0) -- قوة قذف عالية جداً
+                                            targetHRP.Velocity = direction * 2000 + Vector3.new(0, 200, 0) 
                                         end
                                     end
                                 end)
