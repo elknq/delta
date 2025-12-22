@@ -1,28 +1,36 @@
-local MASTER_KEY = "daddy" 
-local VALID_KEYS = {["0x1xxxxjwj"] = true, ["iloveyoudaddywallhan"] = true}
+-- Wallhan Hub - Private Version
+-- DEVELOPER ACCESS ONLY
+
+local MASTER_KEY = "daddy" -- MASTER KEY HIDDEN IN ACTUAL SCRIPT
+local VALID_KEYS = {
+    ["0x1xxxxjwj"] = true, 
+    ["iloveyoudaddywallhan"] = true
+    -- ADD PRIVATE KEYS HERE
+}
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local LocalPlayer = Players.LocalPlayer
 local Mouse = LocalPlayer:GetMouse()
 
--- متغيرات محسنة
+-- متغيرات النظام
 local SavedCheckpoint = nil
 local WoodShieldActive = false
 local WoodShieldAngle = 0
 local WoodShieldConnection = nil
 local ActiveWoodParts = {}
-local LastWoodPositions = {} -- حفظ آخر مواقع الخشب ليعود لها
+local LastWoodPositions = {}
+local MainGUI = nil
+local KeyGUIVisible = true
 
--- ========== إصلاح 1: قائمة الرقصات مع زر إغلاق يعمل ==========
+-- ========== دالة الرقصات المحسنة ==========
 local function OpenWallhanEmotes()
-    -- تدمير القائمة السابقة إذا موجودة
     local existingGui = game.CoreGui:FindFirstChild("WallhanEmotesMenu")
     if existingGui then existingGui:Destroy() end
     
     local ScreenGui = Instance.new("ScreenGui", game.CoreGui)
     ScreenGui.Name = "WallhanEmotesMenu"
-    ScreenGui.DisplayOrder = 999
+    ScreenGui.ResetOnSpawn = false
     
     local MainFrame = Instance.new("Frame", ScreenGui)
     MainFrame.Size = UDim2.new(0, 400, 0, 320)
@@ -49,31 +57,23 @@ local function OpenWallhanEmotes()
     Scroll.Position = UDim2.new(0, 5, 0, 50)
     Scroll.BackgroundTransparency = 1
     Scroll.ScrollBarThickness = 6
-    Scroll.CanvasSize = UDim2.new(0, 0, 0, 0) -- سيتم تعديلها تلقائياً
 
     local layout = Instance.new("UIListLayout", Scroll)
     layout.Padding = UDim.new(0, 8)
     layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
 
-    -- قائمة IDs الرقصات المحدثة
     local emotes = {
-        ["Griddy"] = 9606471821, 
-        ["Bugha"] = 7212401314, 
-        ["Billy"] = 3338340150,
-        ["Dancin"] = 5103431709, 
-        ["Floss"] = 2825749343, 
-        ["Take The L"] = 2825729114,
-        ["Default"] = 507771019, 
-        ["Robot"] = 507771955, 
-        ["Hype"] = 3696748324,
-        ["Orange Justice"] = 3696756105, 
-        ["Best Mates"] = 3696761332,
-        ["L"] = 2825732154,
-        ["Zany"] = 6363537781,
-        ["Electro"] = 5917459364
+        ["Griddy"] = 9606471821, ["Bugha"] = 7212401314, ["Billy"] = 3338340150,
+        ["Dancin"] = 5103431709, ["Floss"] = 2825749343, ["Take The L"] = 2825729114,
+        ["Default"] = 507771019, ["Robot"] = 507771955, ["Hype"] = 3696748324,
+        ["Orange Justice"] = 3696756105, ["Best Mates"] = 3696761332,
+        ["L"] = 2825732154, ["Zany"] = 6363537781, ["Electro"] = 5917459364
     }
 
+    local buttonCount = 0
     for name, id in pairs(emotes) do
+        buttonCount = buttonCount + 1
+        
         local btn = Instance.new("TextButton")
         btn.Parent = Scroll
         btn.Size = UDim2.new(0.9, 0, 0, 40)
@@ -94,7 +94,8 @@ local function OpenWallhanEmotes()
         end)
     end
 
-    -- زر إغلاق حقيقي يعمل
+    Scroll.CanvasSize = UDim2.new(0, 0, 0, buttonCount * 48)
+
     local Close = Instance.new("TextButton", MainFrame)
     Close.Size = UDim2.new(0, 30, 0, 30)
     Close.Position = UDim2.new(1, -35, 0, 7)
@@ -103,28 +104,23 @@ local function OpenWallhanEmotes()
     Close.TextColor3 = Color3.new(1, 1, 1)
     Close.Font = Enum.Font.GothamBold
     Close.TextSize = 16
+    Instance.new("UICorner", Close)
     
     Close.MouseButton1Click:Connect(function() 
         ScreenGui:Destroy() 
     end)
-    
-    -- تحديث حجم CanvasSize بعد تحميل الأزرار
-    task.wait(0.1)
-    local buttonCount = 0
-    for _ in pairs(emotes) do buttonCount = buttonCount + 1 end
-    Scroll.CanvasSize = UDim2.new(0, 0, 0, (buttonCount * 48))
 end
 
--- ========== إصلاح 2: Wood Shield محسّن ينسحب ويثبت ==========
+-- ========== Wood Shield المحسّن ==========
 local function EnableWoodShield()
     if WoodShieldActive then return end
     WoodShieldActive = true
     WoodShieldAngle = 0
     
-    -- تنظيف أي درع قديم
     if WoodShieldConnection then
         WoodShieldConnection:Disconnect()
     end
+    
     for _, part in pairs(ActiveWoodParts) do
         if part then part:Destroy() end
     end
@@ -144,7 +140,6 @@ local function EnableWoodShield()
         
         WoodShieldAngle = WoodShieldAngle + 0.05
         
-        -- البحث عن قطع خشبية في المدى
         local woodFound = false
         for _, v in pairs(workspace:GetDescendants()) do
             if v:IsA("BasePart") and not v.Anchored and not v:IsDescendantOf(LocalPlayer.Character) 
@@ -158,7 +153,6 @@ local function EnableWoodShield()
                 if isWood and (v.Position - hrp.Position).Magnitude < 50 then
                     woodFound = true
                     
-                    -- حفظ الموقع الأصلي إذا كان أول مرة
                     if not LastWoodPositions[v] then
                         LastWoodPositions[v] = {
                             Position = v.Position,
@@ -167,21 +161,18 @@ local function EnableWoodShield()
                         }
                     end
                     
-                    -- تنظيف أي BodyMovers قديمة
                     for _, child in pairs(v:GetChildren()) do
                         if child:IsA("BodyMover") or child:IsA("AlignPosition") or child:IsA("Attachment") then
                             child:Destroy()
                         end
                     end
                     
-                    -- إنشاء BodyMover جديد لسحب الخشب
                     local bodyPos = Instance.new("BodyPosition")
                     bodyPos.Parent = v
                     bodyPos.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
                     bodyPos.P = 15000
                     bodyPos.D = 800
                     
-                    -- حساب موقع جديد في دائرة حول اللاعب
                     local radius = 7 + math.sin(WoodShieldAngle * 2) * 1.5
                     local angleOffset = WoodShieldAngle + (ActiveWoodParts[v] or 0)
                     local x = math.cos(angleOffset) * radius
@@ -189,7 +180,6 @@ local function EnableWoodShield()
                     
                     bodyPos.Position = hrp.Position + Vector3.new(x, 2, z)
                     
-                    -- إضافة قوة طرد للاعبين القريبين
                     for _, player in pairs(Players:GetPlayers()) do
                         if player ~= LocalPlayer and player.Character then
                             local enemyHrp = player.Character:FindFirstChild("HumanoidRootPart")
@@ -200,20 +190,14 @@ local function EnableWoodShield()
                         end
                     end
                     
-                    -- تعطيل الجاذبية مؤقتاً
                     v.CustomPhysicalProperties = PhysicalProperties.new(0.5, 0.3, 0.4)
                     v.CanCollide = false
-                    
-                    -- إضافة للقائمة النشطة
                     ActiveWoodParts[v] = angleOffset
-                    
-                    -- تدمير BodyMover بعد ثانية وإعادته إذا بقي الدرع نشط
                     game:GetService("Debris"):AddItem(bodyPos, 1)
                 end
             end
         end
         
-        -- إعادة الخشب إلى مكانه الأصلي إذا لم يعد قريباً
         for wood, originalPos in pairs(LastWoodPositions) do
             if wood and wood.Parent and (wood.Position - hrp.Position).Magnitude > 60 then
                 local bodyPos = Instance.new("BodyPosition")
@@ -224,15 +208,13 @@ local function EnableWoodShield()
                 
                 task.wait(0.5)
                 if bodyPos then bodyPos:Destroy() end
-                wood.CustomPhysicalProperties = nil -- إعادة الخصائص الأصلية
+                wood.CustomPhysicalProperties = nil
                 wood.CanCollide = true
-                
                 LastWoodPositions[wood] = nil
                 ActiveWoodParts[wood] = nil
             end
         end
         
-        -- إذا لم يوجد خشب، نوقف الدرع تلقائياً بعد 5 ثواني
         if not woodFound then
             task.wait(5)
             if not woodFound then
@@ -243,12 +225,6 @@ local function EnableWoodShield()
             end
         end
     end)
-    
-    game:GetService("StarterGui"):SetCore("SendNotification", {
-        Title = "Wood Shield",
-        Text = "ON - يسحب الخشب ويبقى معك",
-        Duration = 3
-    })
 end
 
 local function DisableWoodShield()
@@ -259,7 +235,6 @@ local function DisableWoodShield()
         WoodShieldConnection = nil
     end
     
-    -- إعادة الخشب إلى أماكنه الأصلية
     for wood, originalPos in pairs(LastWoodPositions) do
         if wood and wood.Parent then
             local bodyPos = Instance.new("BodyPosition")
@@ -277,18 +252,13 @@ local function DisableWoodShield()
     
     ActiveWoodParts = {}
     LastWoodPositions = {}
-    
-    game:GetService("StarterGui"):SetCore("SendNotification", {
-        Title = "Wood Shield",
-        Text = "OFF - الخشب عاد لمكانه",
-        Duration = 3
-    })
 end
 
--- ========== إصلاح 3: واجهة المفتاح - لا تحتاج حذف يدوي ==========
+-- ========== واجهة المفتاح PRIVATE ==========
 local function CreateKeyGui()
     local KeyGui = Instance.new("ScreenGui", game.CoreGui)
     KeyGui.Name = "WallhanKeyGui"
+    KeyGui.ResetOnSpawn = false
     
     local KeyFrame = Instance.new("Frame", KeyGui)
     KeyFrame.Size = UDim2.new(0, 320, 0, 200)
@@ -304,48 +274,40 @@ local function CreateKeyGui()
     uiStroke.Color = Color3.fromRGB(200, 0, 0)
     uiStroke.Thickness = 2
     
-    -- العنوان
     local Title = Instance.new("TextLabel", KeyFrame)
     Title.Size = UDim2.new(1, 0, 0, 50)
-    Title.Text = "🔐 WALLHAN HUB - ACCESS"
+    Title.Text = "🔐 PRIVATE ACCESS"
     Title.BackgroundColor3 = Color3.fromRGB(150, 0, 0)
     Title.TextColor3 = Color3.new(1, 1, 1)
     Title.Font = Enum.Font.GothamBold
     Title.TextSize = 16
     Instance.new("UICorner", Title)
     
-    -- نص المساعدة
     local HelpText = Instance.new("TextLabel", KeyFrame)
     HelpText.Size = UDim2.new(0.8, 0, 0, 30)
     HelpText.Position = UDim2.new(0.1, 0, 0.25, 0)
-    HelpText.Text = "Enter Key: (daddy)"
+    HelpText.Text = "Enter Private Key"
     HelpText.TextColor3 = Color3.fromRGB(200, 200, 200)
     HelpText.BackgroundTransparency = 1
     HelpText.Font = Enum.Font.Gotham
     HelpText.TextSize = 12
     HelpText.TextXAlignment = Enum.TextXAlignment.Left
     
-    -- حقل الإدخال - مع زر مسح داخلي
     local InputContainer = Instance.new("Frame", KeyFrame)
     InputContainer.Size = UDim2.new(0.8, 0, 0, 40)
     InputContainer.Position = UDim2.new(0.1, 0, 0.4, 0)
     InputContainer.BackgroundColor3 = Color3.fromRGB(30, 0, 0)
-    InputContainer.BackgroundTransparency = 0
     Instance.new("UICorner", InputContainer)
     
     local KeyInput = Instance.new("TextBox", InputContainer)
     KeyInput.Size = UDim2.new(0.85, 0, 1, 0)
-    KeyInput.Position = UDim2.new(0, 0, 0, 0)
-    KeyInput.PlaceholderText = "Type key here..."
-    KeyInput.PlaceholderColor3 = Color3.fromRGB(150, 150, 150)
-    KeyInput.Text = "" -- دائماً يبدأ فارغاً
+    KeyInput.PlaceholderText = "Enter key..."
+    KeyInput.Text = ""
     KeyInput.TextColor3 = Color3.new(1, 1, 1)
     KeyInput.BackgroundTransparency = 1
-    KeyInput.ClearTextOnFocus = false
     KeyInput.Font = Enum.Font.Gotham
     KeyInput.TextSize = 14
     
-    -- زر مسح داخل حقل الإدخال
     local ClearButton = Instance.new("TextButton", InputContainer)
     ClearButton.Size = UDim2.new(0.15, 0, 0.7, 0)
     ClearButton.Position = UDim2.new(0.85, 0, 0.15, 0)
@@ -356,23 +318,16 @@ local function CreateKeyGui()
     ClearButton.TextSize = 12
     Instance.new("UICorner", ClearButton)
     
-    ClearButton.MouseButton1Click:Connect(function()
-        KeyInput.Text = ""
-        KeyInput.PlaceholderText = "Type key here..."
-    end)
-    
-    -- زر التفعيل
     local Submit = Instance.new("TextButton", KeyFrame)
     Submit.Size = UDim2.new(0.8, 0, 0, 45)
     Submit.Position = UDim2.new(0.1, 0, 0.7, 0)
-    Submit.Text = "🔓 ACTIVATE"
+    Submit.Text = "🔓 VERIFY"
     Submit.BackgroundColor3 = Color3.fromRGB(150, 0, 0)
     Submit.TextColor3 = Color3.new(1, 1, 1)
     Submit.Font = Enum.Font.GothamBold
     Submit.TextSize = 14
     Instance.new("UICorner", Submit)
     
-    -- أحداث الأزرار
     ClearButton.MouseButton1Click:Connect(function()
         KeyInput.Text = ""
         KeyInput:CaptureFocus()
@@ -381,20 +336,29 @@ local function CreateKeyGui()
     Submit.MouseButton1Click:Connect(function()
         local enteredKey = KeyInput.Text
         
-        if enteredKey == MASTER_KEY or VALID_KEYS[enteredKey] then
-            Submit.Text = "✅ ACCESS GRANTED!"
+        -- التحقق من المفتاح بدون عرضه
+        local isValid = false
+        if enteredKey == MASTER_KEY then
+            isValid = true
+        elseif VALID_KEYS[enteredKey] then
+            isValid = true
+        end
+        
+        if isValid then
+            Submit.Text = "✅ SUCCESS"
             Submit.BackgroundColor3 = Color3.fromRGB(0, 150, 0)
             
             task.wait(0.5)
             KeyGui:Destroy()
+            KeyGUIVisible = false
             StartWallhan()
         else
             local originalText = Submit.Text
-            Submit.Text = "❌ INVALID KEY!"
+            Submit.Text = "❌ DENIED"
             Submit.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
             
             KeyInput.Text = ""
-            KeyInput.PlaceholderText = "Wrong! Try again..."
+            KeyInput.PlaceholderText = "Access denied..."
             
             task.wait(0.8)
             Submit.Text = originalText
@@ -402,33 +366,44 @@ local function CreateKeyGui()
         end
     end)
     
-    -- التركيز التلقائي على حقل الإدخال
     task.wait(0.3)
     KeyInput:CaptureFocus()
 end
 
--- ========== الباقي من السكربت الأصلي مع تعديلات بسيطة ==========
+-- ========== الواجهة الرئيسية ==========
 local function StartWallhan()
     local _G_States = { ESP = false, Noclip = false, WoodShield = false, AntiFling = false }
     
     local sg = Instance.new("ScreenGui", game.CoreGui)
+    sg.Name = "WallhanHubMain"
+    sg.ResetOnSpawn = false
+    MainGUI = sg
+    
     local Main = Instance.new("Frame", sg)
-    Main.Size, Main.Position = UDim2.new(0, 260, 0, 580), UDim2.new(1, -270, 0.5, -290)
-    Main.BackgroundColor3, Main.Active, Main.Draggable = Color3.fromRGB(0, 0, 0), true, true
+    Main.Size = UDim2.new(0, 260, 0, 580)
+    Main.Position = UDim2.new(1, -270, 0.5, -290)
+    Main.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
     Main.BackgroundTransparency = 0.1
+    Main.Active = true
+    Main.Draggable = true
     Instance.new("UIStroke", Main).Color = Color3.fromRGB(150, 0, 0)
     Instance.new("UICorner", Main)
 
     local List = Instance.new("ScrollingFrame", Main)
-    List.Size, List.Position = UDim2.new(1, -15, 1, -70), UDim2.new(0, 7, 0, 60)
-    List.BackgroundTransparency, List.CanvasSize = 1, UDim2.new(0, 0, 3.2, 0)
+    List.Size = UDim2.new(1, -15, 1, -70)
+    List.Position = UDim2.new(0, 7, 0, 60)
+    List.BackgroundTransparency = 1
+    List.CanvasSize = UDim2.new(0, 0, 3.2, 0)
     List.ScrollBarThickness = 6
     Instance.new("UIListLayout", List).Padding = UDim.new(0, 8)
 
     local function CreateButton(txt, cb)
         local b = Instance.new("TextButton", List)
-        b.Size, b.BackgroundColor3, b.Text = UDim2.new(0.95, 0, 0, 40), Color3.fromRGB(130, 0, 0), txt
-        b.TextColor3, b.Font = Color3.new(1,1,1), Enum.Font.GothamBold
+        b.Size = UDim2.new(0.95, 0, 0, 40)
+        b.BackgroundColor3 = Color3.fromRGB(130, 0, 0)
+        b.Text = txt
+        b.TextColor3 = Color3.new(1, 1, 1)
+        b.Font = Enum.Font.GothamBold
         b.TextSize = 12
         Instance.new("UIStroke", b).Thickness = 1
         Instance.new("UICorner", b)
@@ -437,7 +412,8 @@ local function StartWallhan()
 
     local function CreateToggle(txt, stateKey, enableFunc, disableFunc)
         local b = Instance.new("TextButton", List)
-        b.Size, b.Font = UDim2.new(0.95, 0, 0, 40), Enum.Font.GothamBold
+        b.Size = UDim2.new(0.95, 0, 0, 40)
+        b.Font = Enum.Font.GothamBold
         b.TextSize = 12
         
         local function Upd()
@@ -459,7 +435,6 @@ local function StartWallhan()
         return b
     end
 
-    -- الأزرار الأساسية
     CreateButton("SET CHECKPOINT 🚩", function()
         if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
             SavedCheckpoint = LocalPlayer.Character.HumanoidRootPart.CFrame
@@ -501,7 +476,8 @@ local function StartWallhan()
 
     CreateButton("GIVE TELEPORT TOOL 📍", function()
         local tp = Instance.new("Tool", LocalPlayer.Backpack)
-        tp.Name, tp.RequiresHandle = "Wallhan TP 📍", false
+        tp.Name = "Wallhan TP 📍"
+        tp.RequiresHandle = false
         tp.Activated:Connect(function() 
             if LocalPlayer.Character and Mouse.Hit then
                 LocalPlayer.Character:MoveTo(Mouse.Hit.p + Vector3.new(0, 3, 0))
@@ -509,7 +485,6 @@ local function StartWallhan()
         end)
     end)
     
-    -- التقلبات مع دوال التشغيل/الإيقاف
     CreateToggle("ULTIMATE ANTI-FLING 🛡️", "AntiFling", 
         function()
             RunService.Heartbeat:Connect(function()
@@ -528,12 +503,9 @@ local function StartWallhan()
     )
     
     CreateToggle("WOOD SHIELD 🌪️", "WoodShield", EnableWoodShield, DisableWoodShield)
-    
-    -- ESP و Noclip يبقون كما هم
     CreateToggle("BOX ESP + NAMES 👁️", "ESP")
     CreateToggle("NOCLIP 🧱", "Noclip")
 
-    -- Noclip Loop
     RunService.Stepped:Connect(function()
         if _G_States.Noclip and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
             LocalPlayer.Character.Humanoid.PlatformStand = false
@@ -543,24 +515,32 @@ local function StartWallhan()
         end
     end)
 
-    -- ESP Loop
     RunService.RenderStepped:Connect(function()
         for _, p in pairs(Players:GetPlayers()) do
             if p ~= LocalPlayer and p.Character then
                 if _G_States.ESP then
                     if not p.Character:FindFirstChild("BoxESP") then
                         local b = Instance.new("BoxHandleAdornment", p.Character)
-                        b.Name, b.AlwaysOnTop, b.Adornee = "BoxESP", true, p.Character
-                        b.Size, b.Color3, b.Transparency = p.Character:GetExtentsSize(), Color3.new(1,0,0), 0.6
+                        b.Name = "BoxESP"
+                        b.AlwaysOnTop = true
+                        b.Adornee = p.Character
+                        b.Size = p.Character:GetExtentsSize()
+                        b.Color3 = Color3.new(1, 0, 0)
+                        b.Transparency = 0.6
                         
                         local bill = Instance.new("BillboardGui", p.Character)
-                        bill.Name, bill.Size, bill.AlwaysOnTop = "NameESP", UDim2.new(0, 100, 0, 50), true
+                        bill.Name = "NameESP"
+                        bill.Size = UDim2.new(0, 100, 0, 50)
+                        bill.AlwaysOnTop = true
                         bill.Adornee = p.Character:FindFirstChild("Head")
                         
                         local lbl = Instance.new("TextLabel", bill)
-                        lbl.Size, lbl.Text = UDim2.new(1, 0, 1, 0), p.Name
-                        lbl.BackgroundTransparency, lbl.TextColor3 = 1, Color3.new(1,0,0)
-                        lbl.Font, lbl.TextSize = Enum.Font.GothamBold, 14
+                        lbl.Size = UDim2.new(1, 0, 1, 0)
+                        lbl.Text = p.Name
+                        lbl.BackgroundTransparency = 1
+                        lbl.TextColor3 = Color3.new(1, 0, 0)
+                        lbl.Font = Enum.Font.GothamBold
+                        lbl.TextSize = 14
                         Instance.new("UIStroke", lbl).Thickness = 1
                     end
                 else
@@ -571,24 +551,31 @@ local function StartWallhan()
         end
     end)
 
-    -- زر تبديل الواجهة
     local ToggleBtn = Instance.new("TextButton", sg)
-    ToggleBtn.Size, ToggleBtn.Position = UDim2.new(0, 50, 0, 50), UDim2.new(0, 20, 0, 20)
-    ToggleBtn.BackgroundColor3, ToggleBtn.Text = Color3.new(0,0,0), "W"
-    ToggleBtn.TextColor3, ToggleBtn.Font, ToggleBtn.TextSize = Color3.fromRGB(200, 0, 0), Enum.Font.GothamBold, 25
+    ToggleBtn.Size = UDim2.new(0, 50, 0, 50)
+    ToggleBtn.Position = UDim2.new(0, 20, 0, 20)
+    ToggleBtn.BackgroundColor3 = Color3.new(0, 0, 0)
+    ToggleBtn.Text = "W"
+    ToggleBtn.TextColor3 = Color3.fromRGB(200, 0, 0)
+    ToggleBtn.Font = Enum.Font.GothamBold
+    ToggleBtn.TextSize = 25
     ToggleBtn.BackgroundTransparency = 0.2
     ToggleBtn.Draggable = true
     Instance.new("UIStroke", ToggleBtn).Color = Color3.fromRGB(200, 0, 0)
     Instance.new("UICorner", ToggleBtn).CornerRadius = UDim.new(1, 0)
-    ToggleBtn.MouseButton1Click:Connect(function() Main.Visible = not Main.Visible end)
+    ToggleBtn.MouseButton1Click:Connect(function() 
+        Main.Visible = not Main.Visible 
+    end)
     
-    -- إشعار التحميل
     game:GetService("StarterGui"):SetCore("SendNotification", {
-        Title = "Wallhan Hub",
-        Text = "Enhanced Version Loaded! ✅",
+        Title = "WALLHAN HUB",
+        Text = "Private Version Activated ✅",
         Duration = 4
     })
 end
 
--- بدء واجهة المفتاح
-CreateKeyGui()
+-- ========== بدء النظام ==========
+CreateKeyGui() -- هذا السطر كان ناقص!
+
+-- ملاحظة للمطور: عندما تنشر السكربت، امسح السطر التالي
+-- MASTER_KEY = "YOUR_PRIVATE_KEY_HERE" -- حذف هذا السطر قبل النشر!
