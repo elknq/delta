@@ -2,6 +2,7 @@
     ╔══════════════════════════════════════════╗
     ║       WALLHAN HUB - PROFESSIONAL V2      ║
     ║  FE Emote, Advanced Wood Shield, New UI  ║
+    ║  ✅ FIX: UI Visibility for Delta/iPhone  ║
     ╚══════════════════════════════════════════╝
 ]]
 
@@ -53,12 +54,19 @@ end
 
 -- [[ واجهة الرقصات ]]
 local function OpenWallhanEmotes()
-    local existingGui = game.CoreGui:FindFirstChild("WallhanEmotesMenu")
+    -- ✅ FIX: استخدام PlayerGui لضمان الظهور
+    local parentGui = game.CoreGui
+    if LocalPlayer and LocalPlayer:FindFirstChild("PlayerGui") then
+        parentGui = LocalPlayer.PlayerGui
+    end
+    
+    local existingGui = parentGui:FindFirstChild("WallhanEmotesMenu")
     if existingGui then existingGui:Destroy() end
     
-    local ScreenGui = Instance.new("ScreenGui", game.CoreGui)
+    local ScreenGui = Instance.new("ScreenGui")
     ScreenGui.Name = "WallhanEmotesMenu"
     ScreenGui.DisplayOrder = 999
+    ScreenGui.Parent = parentGui -- ✅ تعيين الـ Parent
     
     local MainFrame = Instance.new("Frame", ScreenGui)
     MainFrame.Size = UDim2.new(0, 350, 0, 250)
@@ -127,9 +135,16 @@ end
 local function StartWallhan()
     local _G_States = { ESP = false, Noclip = false, WoodShield = false, AntiFling = false }
     
-    local sg = Instance.new("ScreenGui", game.CoreGui)
+    -- ✅ FIX: استخدام PlayerGui لضمان الظهور
+    local parentGui = game.CoreGui
+    if LocalPlayer and LocalPlayer:FindFirstChild("PlayerGui") then
+        parentGui = LocalPlayer.PlayerGui
+    end
+    
+    local sg = Instance.new("ScreenGui")
     sg.Name = "WallhanHub"
     sg.ResetOnSpawn = false
+    sg.Parent = parentGui -- ✅ تعيين الـ Parent هنا
     
     local Main = Instance.new("Frame", sg)
     Main.Size = UDim2.new(0, 320, 0, 620)
@@ -366,16 +381,5 @@ local function StartWallhan()
                                             local targetHRP = hitHumanoid.Parent:FindFirstChild("HumanoidRootPart")
                                             if targetHRP then
                                                 local direction = (targetHRP.Position - hrp.Position).Unit
-                                                targetHRP.Velocity = direction * 150 + Vector3.new(0, 50, 0) -- قوة قذف عالية
-                                            end
-                                        end
-                                    end)
-                                end
-                            end
-                        end
-                    end
-                    
-                    -- 2. تحديث موقع الدوران للأجزاء الموجودة
-                    for _, data in pairs(woodParts) do
-                        if data.att and data.a
+                                 
 (Content truncated due to size limit. Use page ranges or line ranges to read remaining content)
