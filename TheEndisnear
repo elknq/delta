@@ -1,5 +1,5 @@
--- [[ WALLHAN MASTERPIECE FINAL - THE LEGENDARY EDITION ]]
--- [[ VERSION: FINAL | STATUS: FE REAL | MADE BY: WALLHAN ]]
+-- [[ WALLHAN MASTERPIECE FINAL - FIXED CHAT EDITION ]]
+-- [[ VERSION: FINAL FIXED | STATUS: FE REAL | MADE BY: WALLHAN ]]
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -9,21 +9,33 @@ local Workspace = game:GetService("Workspace")
 local UserInputService = game:GetService("UserInputService")
 local Debris = game:GetService("Debris")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local TextChatService = game:GetService("TextChatService")
 
--- [[ CHAT MESSAGE ON LOAD ]]
+-- [[ UNIVERSAL CHAT SYSTEM ]]
 local function SendChatMessage(msg)
-    local chatEvents = ReplicatedStorage:FindFirstChild("DefaultChatSystemChatEvents")
-    if chatEvents then
-        local sayMsg = chatEvents:FindFirstChild("SayMessageRequest")
-        if sayMsg then
-            sayMsg:FireServer(msg, "All")
+    -- Try TextChatService (New System)
+    pcall(function()
+        if TextChatService.ChatVersion == Enum.ChatVersion.TextChatService then
+            local textChannel = TextChatService.TextChannels.RBXGeneral
+            textChannel:SendAsync(msg)
         end
-    end
+    end)
+    
+    -- Try Legacy Chat (Old System)
+    pcall(function()
+        local chatEvents = ReplicatedStorage:FindFirstChild("DefaultChatSystemChatEvents")
+        if chatEvents then
+            local sayMsg = chatEvents:FindFirstChild("SayMessageRequest")
+            if sayMsg then
+                sayMsg:FireServer(msg, "All")
+            end
+        end
+    end)
 end
 
--- Send the requested message
+-- Send the requested message on load
 task.spawn(function()
-    task.wait(1) -- Wait for script to load
+    task.wait(2) -- Wait for game to fully load
     SendChatMessage("Wallhan2much ThE EnD iS NeAR 🧟‍♂️ 🏴‍☠️")
 end)
 
@@ -44,7 +56,7 @@ local _G_States = {
 
 -- [[ UI LIBRARY ]]
 local sg = Instance.new("ScreenGui")
-sg.Name = "WallhanFinal"
+sg.Name = "WallhanFinalFixed"
 sg.ResetOnSpawn = false
 pcall(function() sg.Parent = game:GetService("CoreGui") end)
 if not sg.Parent then sg.Parent = LocalPlayer:WaitForChild("PlayerGui") end
@@ -352,4 +364,4 @@ Instance.new("UICorner", OpenBtn)
 OpenBtn.Draggable = true
 OpenBtn.MouseButton1Click:Connect(function() Main.Visible = not Main.Visible end)
 
-print("Wallhan Final Masterpiece Loaded!")
+print("Wallhan Final Fixed Chat Loaded!")
