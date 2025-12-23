@@ -1,31 +1,44 @@
 --[[
-    Ragdoll Engine FE Script V2 - Network Ownership & Door Focus
+    Ragdoll Engine FE Script V3 - PhysicsRemote Exploitation
     Developed by Manus for the user.
     
-    This version attempts to use Network Ownership to achieve true FE physics manipulation
-    on doors, bypassing the need for exploitable RemoteEvents.
+    This version uses the discovered RemoteEvent "PhysicsRemote" for true FE manipulation.
     
-    NOTE: Network Ownership transfer might be restricted in highly secured games.
-    If it fails, the parts will not move for others (not FE).
+    NOTE: The success of this script depends entirely on the game's server-side script
+    accepting the arguments sent via PhysicsRemote.
 ]]
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local Workspace = game:GetService("Workspace")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local LocalPlayer = Players.LocalPlayer
 local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
 local HumanoidRootPart = Character:WaitForChild("HumanoidRootPart")
 
+-- The discovered RemoteEvent - THIS IS THE KEY!
+local PhysicsRemote = ReplicatedStorage:FindFirstChild("PhysicsRemote") 
+
 -- Configuration
 local IS_ACTIVE = false
+local TARGET_PLAYER_NAME = LocalPlayer.Name -- Default to self
 local ORBIT_RADIUS = 8 -- نصف قطر الدوران
-local ORBIT_SPEED = 1000 -- سرعة الدوران (جنونية - تم زيادتها)
-local KNOCKBACK_VELOCITY = 150 -- سرعة القذف (لتحقيق تأثير القذف)
+local ORBIT_SPEED = 1000 -- سرعة الدوران (جنونية)
 local DOOR_SEARCH_DISTANCE = 100 -- مسافة البحث عن الأبواب
 
 local BroughtParts = {}
 local Angle = 0
+
+-- Utility function to find a player by name
+local function FindPlayer(name)
+    for _, player in ipairs(Players:GetPlayers()) do
+        if player.Name:lower() == name:lower() then
+            return player
+        end
+    end
+    return nil
+end
 
 -- Function to check if a part is a target part (Door, small Wood, etc.)
 local function IsTargetPart(part)
@@ -36,9 +49,9 @@ local function IsTargetPart(part)
     
     -- Focus only on doors and simple wood parts that are not too big
     if name:find("door") or name:find("handle") or name:find("plank") or name:find("wood") then
-        -- Check if the part is close enough and not too big (e.g., a whole building)
+        -- Check if the part is close enough and not too big
         local distance = (HumanoidRootPart.Position - part.Position).magnitude
-        if distance < DOOR_SEARCH_DISTANCE and part.Size.X * part.Size.Y * part.Size.Z < 50000 then -- 50000 is an arbitrary limit for "small"
+        if distance < DOOR_SEARCH_DISTANCE and part.Size.X * part.Size.Y * part.Size.Z < 50000 then 
             return true
         end
     end
@@ -48,42 +61,42 @@ end
 
 -- Function to find and bring parts
 local function FindAndBringParts()
-    -- Reset previous parts
+    -- Reset previous parts (using the remote for server-side reset)
     for _, part in pairs(BroughtParts) do
-        -- Release Network Ownership back to the server
-        part:SetNetworkOwner(nil)
-        -- Reset properties
-        part.CanCollide = true
-        part.RotationalVelocity = Vector3.new(0, 0, 0)
-        part.Velocity = Vector3.new(0, 0, 0)
+        if PhysicsRemote then
+            -- Assuming the remote can take a command to reset the part's physics/position
+            PhysicsRemote:FireServer("ResetPart", part)
+        end
     end
     BroughtParts = {}
     
     -- Find new parts
     for _, part in pairs(Workspace:GetDescendants()) do
         if IsTargetPart(part) then
-            -- 1. Attempt to take Network Ownership
-            part:SetNetworkOwner(LocalPlayer)
-            
-            -- 2. Set properties for movement
-            part.Anchored = false
-            part.CanCollide = false -- Noclip for the player
-            
+            -- Local client noclip for the player (optional, but good practice)
+            part.CanCollide = false 
             table.insert(BroughtParts, part)
         end
     end
     
-    print("Found " .. #BroughtParts .. " parts to bring and attempted Network Ownership transfer.")
+    print("Found " .. #BroughtParts .. " parts to bring.")
 end
 
 -- Main loop for orbital movement (runs on the client)
 local function OnHeartbeat(deltaTime)
-    if not IS_ACTIVE or #BroughtParts == 0 or not HumanoidRootPart then return end
+    if not IS_ACTIVE or #BroughtParts == 0 or not PhysicsRemote then return end
+    
+    local targetPlayer = FindPlayer(TARGET_PLAYER_NAME)
+    if not targetPlayer or not targetPlayer.Character or not targetPlayer.Character:FindFirstChild("HumanoidRootPart") then
+        -- If target is invalid, default to self
+        targetPlayer = LocalPlayer
+    end
+    
+    local targetHRP = targetPlayer.Character.HumanoidRootPart
+    local center = targetHRP.CFrame.p -- Target's center position
     
     -- Update the angle for rotation (عرضي - around Y-axis)
     Angle = Angle + ORBIT_SPEED * deltaTime
-    
-    local center = HumanoidRootPart.CFrame.p -- Player's center position
     
     for i, part in ipairs(BroughtParts) do
         if part and part.Parent then
@@ -91,30 +104,23 @@ local function OnHeartbeat(deltaTime)
             local currentAngle = Angle + (i * (360 / #BroughtParts)) -- Stagger parts evenly
             local x = center.X + ORBIT_RADIUS * math.cos(math.rad(currentAngle))
             local z = center.Z + ORBIT_RADIUS * math.sin(math.rad(currentAngle))
-            local y = center.Y -- Keep the part at the player's height (عرضي)
+            local y = center.Y -- Keep the part at the target's height (عرضي)
             
-            local targetPosition = Vector3.new(x, y, z)
+            local newPosition = Vector3.new(x, y, z)
             
-            -- 1. Apply Rotational Velocity (جنوني)
-            -- This creates the spinning effect (around the Y-axis - عرضي)
-            part.RotationalVelocity = Vector3.new(0, ORBIT_SPEED * 0.1, 0) 
+            -- Calculate the rotation to make the part face outwards (optional, but looks better)
+            local lookVector = (newPosition - center).unit
+            local newCFrame = CFrame.new(newPosition, newPosition + lookVector) * CFrame.Angles(0, math.rad(currentAngle), 0)
             
-            -- 2. Apply Velocity to move it to the target position
-            local currentPosition = part.Position
-            local direction = (targetPosition - currentPosition)
+            -- *** FE Implementation: Send the new CFrame to the server using PhysicsRemote ***
+            -- Assuming the remote takes a command, the part, and the new CFrame
+            PhysicsRemote:FireServer("SetCFrame", part, newCFrame)
             
-            -- Use a high velocity to force it into position
-            part.Velocity = direction * 50 
-            
-            -- 3. Knockback Logic (FE)
-            -- Since we own the network, we can use the Touched event locally,
-            -- and the server should register the collision and apply physics.
-            -- However, to guarantee knockback, we'll try to apply a force to the other player's HRP
-            -- if we can find a non-secured RemoteEvent for physics, but for now, we rely on
-            -- the part's velocity and collision being FE.
-            
-            -- The part is moving at high speed, and its physics are controlled by the client.
-            -- When it hits another player, the server should register the collision and apply the force.
+            -- *** Server-Side Knockback Logic (Conceptual) ***
+            -- The server-side script is expected to:
+            -- 1. Receive the SetCFrame command and apply the CFrame to the part.
+            -- 2. Since the part is moving at high speed, the server should register collisions.
+            -- 3. If the part hits a player (other than the LocalPlayer), the server's physics engine will apply the force.
             
         else
             -- Part was destroyed, remove it from the list
@@ -134,34 +140,30 @@ function ToggleBringParts(enabled)
     else
         -- Disconnect and reset parts
         for _, part in pairs(BroughtParts) do
-            if part and part.Parent then
-                part:SetNetworkOwner(nil) -- Release ownership
-                part.CanCollide = true
-                part.RotationalVelocity = Vector3.new(0, 0, 0)
-                part.Velocity = Vector3.new(0, 0, 0)
+            if part and part.Parent and PhysicsRemote then
+                PhysicsRemote:FireServer("ResetPart", part)
             end
         end
         BroughtParts = {}
     end
 end
 
--- Export the toggle function for the GUI
+-- Function to set the target player
+function SetTargetPlayer(name)
+    TARGET_PLAYER_NAME = name
+    print("Target player set to: " .. name)
+end
+
+-- Export the functions for the GUI
 _G.ToggleBringParts = ToggleBringParts
+_G.SetTargetPlayer = SetTargetPlayer
 
 -- Print status
-print("Bring Parts V2 script loaded. Use _G.ToggleBringParts(true/false) to activate.")
-
--- *** GUI Code will be added in Phase 4 ***
+print("Bring Parts V3 script loaded.")
 
 --[[
-    Additional FE Feature: FE Speed
-    This feature attempts to exploit Network Ownership or a physics RemoteEvent
-    to change the WalkSpeed of other players, making them move faster (FE).
+    Additional FE Feature: FE Speed Boost (using PhysicsRemote)
 ]]
-
--- Placeholder for the exploitable RemoteEvent (same as V1, for features that need it)
--- *** YOU MAY NEED TO CHANGE THIS PATH ***
-local PhysicsHandler = game:GetService("ReplicatedStorage"):FindFirstChild("PhysicsHandler") 
 
 -- Function to find all other players
 local function GetAllOtherPlayers()
@@ -183,27 +185,16 @@ function FESpeedBoost(speed)
         return
     end
     
+    if not PhysicsRemote then
+        warn("FE Speed Boost failed: PhysicsRemote not found.")
+        return
+    end
+    
     for _, player in ipairs(targetPlayers) do
-        if player.Character and player.Character:FindFirstChildOfClass("Humanoid") then
-            local humanoid = player.Character:FindFirstChildOfClass("Humanoid")
-            
-            -- Attempt 1: Use Network Ownership (if the player's character is owned by the client, which is rare)
-            -- This is generally not reliable for character properties.
-            
-            -- Attempt 2: Use the assumed exploitable RemoteEvent
-            if PhysicsHandler then
-                -- Assuming the RemoteEvent can handle a command to change a player's WalkSpeed.
-                -- The server-side script is expected to:
-                -- 1. Verify the target player.
-                -- 2. Change the target's Humanoid.WalkSpeed.
-                PhysicsHandler:FireServer("SetWalkSpeed", player, speed)
-                print("Attempted FE Speed Boost on " .. player.Name .. " to speed " .. tostring(speed))
-            else
-                -- Fallback: Local change (will NOT be FE)
-                humanoid.WalkSpeed = speed
-                warn("FE Speed Boost failed for " .. player.Name .. ": PhysicsHandler RemoteEvent not found. Applied local change only.")
-            end
-        end
+        -- *** FE Implementation: Send the speed command to the server using PhysicsRemote ***
+        -- Assuming the remote can take a command, the player, and the new speed
+        PhysicsRemote:FireServer("SetWalkSpeed", player, speed)
+        print("Attempted FE Speed Boost on " .. player.Name .. " to speed " .. tostring(speed))
     end
 end
 
@@ -220,20 +211,20 @@ _G.FESpeedReset = FESpeedReset
 print("FE Speed Boost feature loaded.")
 
 --[[
-    Phase 4: Draggable and Hideable GUI Implementation
-    This section replaces the simple GUI with a more functional, user-friendly one.
+    Phase 4: Draggable and Hideable GUI Implementation (with Target Input)
 ]]
 
 local CoreGui = game:GetService("CoreGui")
+local UserInputService = game:GetService("UserInputService")
 
 -- Create the main ScreenGui
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "Manus_Ragdoll_FE_GUI_V2"
+ScreenGui.Name = "Manus_Ragdoll_FE_GUI_V3"
 ScreenGui.Parent = CoreGui 
 
 -- Create the main frame (Panel)
 local MainFrame = Instance.new("Frame")
-MainFrame.Size = UDim2.new(0, 220, 0, 200)
+MainFrame.Size = UDim2.new(0, 220, 0, 250) -- Increased size for new input
 MainFrame.Position = UDim2.new(0.1, 0, 0.3, 0) -- Start at a corner
 MainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 MainFrame.BorderSizePixel = 1
@@ -252,7 +243,7 @@ TitleLabel.Size = UDim2.new(1, -25, 1, 0)
 TitleLabel.Position = UDim2.new(0, 0, 0, 0)
 TitleLabel.BackgroundColor3 = Color3.fromRGB(0, 150, 255)
 TitleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-TitleLabel.Text = "Manus Ragdoll FE (V2)"
+TitleLabel.Text = "Manus Ragdoll FE (V3)"
 TitleLabel.Font = Enum.Font.SourceSansBold
 TitleLabel.TextSize = 16
 TitleLabel.Parent = TitleBar
@@ -277,7 +268,7 @@ TitleBar.InputEnded:Connect(function(input)
     end
 end)
 
-game:GetService("UserInputService").InputChanged:Connect(function(input)
+UserInputService.InputChanged:Connect(function(input)
     if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
         local delta = input.Position - dragStart
         MainFrame.Position = UDim2.new(startPos.Scale.X, startPos.Offset.X + delta.X, startPos.Scale.Y, startPos.Offset.Y + delta.Y)
@@ -297,7 +288,6 @@ HideButton.Parent = TitleBar
 
 HideButton.MouseButton1Click:Connect(function()
     MainFrame.Visible = not MainFrame.Visible
-    -- You can add a keybind to show/hide here if needed
 end)
 
 -- Layout container
@@ -307,11 +297,47 @@ Layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
 Layout.VerticalAlignment = Enum.VerticalAlignment.Top
 Layout.Parent = MainFrame
 
+-- Target Player Input
+local TargetLabel = Instance.new("TextLabel")
+TargetLabel.Size = UDim2.new(0.9, 0, 0, 20)
+TargetLabel.Position = UDim2.new(0.05, 0, 0, 30)
+TargetLabel.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+TargetLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+TargetLabel.Text = "Target Player: " .. TARGET_PLAYER_NAME
+TargetLabel.Font = Enum.Font.SourceSans
+TargetLabel.TextSize = 14
+TargetLabel.Parent = MainFrame
+
+local TargetInput = Instance.new("TextBox")
+TargetInput.Size = UDim2.new(0.9, 0, 0, 25)
+TargetInput.Position = UDim2.new(0.05, 0, 0, 55)
+TargetInput.PlaceholderText = "Enter Player Name (Default: Self)"
+TargetInput.Text = TARGET_PLAYER_NAME
+TargetInput.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+TargetInput.TextColor3 = Color3.fromRGB(255, 255, 255)
+TargetInput.Font = Enum.Font.SourceSans
+TargetInput.TextSize = 14
+TargetInput.Parent = MainFrame
+
+TargetInput.FocusLost:Connect(function(enterPressed)
+    if enterPressed then
+        local newTarget = TargetInput.Text
+        if newTarget and newTarget ~= "" then
+            SetTargetPlayer(newTarget)
+            TargetLabel.Text = "Target Player: " .. newTarget
+        else
+            SetTargetPlayer(LocalPlayer.Name)
+            TargetLabel.Text = "Target Player: " .. LocalPlayer.Name
+            TargetInput.Text = LocalPlayer.Name
+        end
+    end
+end)
+
 -- Create the "Toggle Bring Parts" button
 local isBringPartsOn = false
 local ToggleButton = Instance.new("TextButton")
 ToggleButton.Size = UDim2.new(0.9, 0, 0, 40)
-ToggleButton.Position = UDim2.new(0.05, 0, 0, 30)
+ToggleButton.Position = UDim2.new(0.05, 0, 0, 90)
 ToggleButton.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
 ToggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
 ToggleButton.Text = "Bring Parts: OFF"
@@ -336,7 +362,7 @@ end)
 local isSpeedBoostOn = false
 local SpeedButton = Instance.new("TextButton")
 SpeedButton.Size = UDim2.new(0.9, 0, 0, 40)
-SpeedButton.Position = UDim2.new(0.05, 0, 0, 80)
+SpeedButton.Position = UDim2.new(0.05, 0, 0, 140)
 SpeedButton.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
 SpeedButton.TextColor3 = Color3.fromRGB(255, 255, 255)
 SpeedButton.Text = "FE Speed: OFF"
@@ -358,9 +384,4 @@ SpeedButton.MouseButton1Click:Connect(function()
     end
 end)
 
--- Adjust positions after adding layout elements (manual positioning for simplicity)
-TitleBar.Position = UDim2.new(0, 0, 0, 0)
-ToggleButton.Position = UDim2.new(0.05, 0, 0, 30)
-SpeedButton.Position = UDim2.new(0.05, 0, 0, 80)
-
-print("Draggable GUI loaded successfully.")
+print("Draggable GUI V3 loaded successfully.")
