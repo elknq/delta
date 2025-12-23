@@ -1,22 +1,22 @@
--- [[ WALLHAN V8 - OBLITERATION EDITION ]]
+-- [[ WALLHAN V9 - FINAL STABLE EDITION ]]
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local LocalPlayer = Players.LocalPlayer
 local Mouse = LocalPlayer:GetMouse()
 
-local _G_States = { WoodShield = false, ESP = false }
+local _G_States = { WoodShield = false, ESP = false, DoorESP = false }
 local targetPlayer = nil
 local checkpointPos = nil
 
 -- [[ UI CREATION ]]
 local sg = Instance.new("ScreenGui")
-sg.Name = "WallhanV8"
+sg.Name = "WallhanV9"
 sg.ResetOnSpawn = false
 local success, err = pcall(function() sg.Parent = game:GetService("CoreGui") end)
 if not success then sg.Parent = LocalPlayer:WaitForChild("PlayerGui") end
 
 local Main = Instance.new("Frame", sg)
-Main.Size = UDim2.new(0, 240, 0, 420)
+Main.Size = UDim2.new(0, 240, 0, 450)
 Main.Position = UDim2.new(0.5, -120, 0.2, 0)
 Main.BackgroundColor3 = Color3.fromRGB(15, 0, 0)
 Main.BorderSizePixel = 2
@@ -27,7 +27,7 @@ Main.Draggable = true
 local Title = Instance.new("TextLabel", Main)
 Title.Size = UDim2.new(1, 0, 0, 35)
 Title.BackgroundColor3 = Color3.fromRGB(40, 0, 0)
-Title.Text = "WALLHAN V8 OBLITERATION"
+Title.Text = "WALLHAN V9 STABLE"
 Title.TextColor3 = Color3.new(1, 1, 1)
 Title.Font = Enum.Font.SourceSansBold
 Title.TextSize = 18
@@ -112,9 +112,8 @@ woodInp:GetPropertyChangedSignal("Text"):Connect(function()
 end)
 
 CreateToggle("WOOD SHIELD", "WoodShield")
-
--- [[ FEATURES ]]
-CreateToggle("RED ESP BOX & NAMES", "ESP")
+CreateToggle("DOOR & WOOD ESP", "DoorESP")
+CreateToggle("PLAYER RED ESP", "ESP")
 
 CreateButton("GIVE TP TOOL", function()
     local t = Instance.new("Tool", LocalPlayer.Backpack)
@@ -155,7 +154,7 @@ TogBtn.MouseButton1Click:Connect(function() Main.Visible = not Main.Visible end)
 
 -- [[ CORE LOGIC ]]
 
--- OBLITERATION Wood Shield Logic (Velocity Blast)
+-- STABLE Wood Shield Logic
 task.spawn(function()
     local angle = 0
     while true do
@@ -171,42 +170,39 @@ task.spawn(function()
                 for _, v in pairs(workspace:GetDescendants()) do
                     if v:IsA("BasePart") and not v.Anchored and not v:IsDescendantOf(LocalPlayer.Character) then
                         if v.Name:lower():find("wood") or v.Name:lower():find("door") or v.Material == Enum.Material.Wood then
-                            -- Clean up old movers
-                            for _, m in pairs(v:GetChildren()) do
-                                if m:IsA("BodyMover") or m:IsA("AlignPosition") or m:IsA("Attachment") then m:Destroy() end
+                            -- Check if already has movers to avoid flickering/disappearing
+                            if not v:FindFirstChild("WallhanMover") then
+                                local a0 = Instance.new("Attachment", v)
+                                a0.Name = "WallhanMover"
+                                local a1 = Instance.new("Attachment", finalTargetHRP)
+                                a1.Name = "WallhanMover"
+                                local al = Instance.new("AlignPosition", v)
+                                al.Name = "WallhanMover"
+                                
+                                al.Attachment0 = a0
+                                al.Attachment1 = a1
+                                al.MaxForce = 1e12 -- High but stable force
+                                al.MaxVelocity = 1e12
+                                al.Responsiveness = 200
+                                
+                                -- Collision & Fling Logic
+                                v.Touched:Connect(function(hit)
+                                    if _G_States.WoodShield and hit.Parent:FindFirstChild("Humanoid") and hit.Parent ~= LocalPlayer.Character then
+                                        local victimHRP = hit.Parent:FindFirstChild("HumanoidRootPart")
+                                        if victimHRP then
+                                            victimHRP.Velocity = Vector3.new(0, 1e5, 0) + (victimHRP.Position - v.Position).Unit * 1e5
+                                        end
+                                    end
+                                end)
+                                
+                                game:GetService("Debris"):AddItem(a1, 0.1)
+                                game:GetService("Debris"):AddItem(al, 0.1)
+                                game:GetService("Debris"):AddItem(a0, 0.1)
                             end
                             
-                            -- VELOCITY BLAST LOGIC
-                            local a0 = Instance.new("Attachment", v)
-                            local a1 = Instance.new("Attachment", finalTargetHRP)
-                            local al = Instance.new("AlignPosition", v)
-                            
-                            al.Attachment0 = a0
-                            al.Attachment1 = a1
-                            al.MaxForce = 1e18
-                            al.MaxVelocity = 1e18
-                            al.Responsiveness = 500
-                            
-                            -- Position wood aggressively around target
-                            a1.Position = Vector3.new(math.cos(angle)*4, 0, math.sin(angle)*4)
-                            
-                            -- IMPACT DETECTION & BLAST
-                            v.Touched:Connect(function(hit)
-                                if hit.Parent:FindFirstChild("Humanoid") and hit.Parent ~= LocalPlayer.Character then
-                                    local victimHRP = hit.Parent:FindFirstChild("HumanoidRootPart")
-                                    if victimHRP then
-                                        -- Massive Velocity Blast to throw them out of the map
-                                        victimHRP.Velocity = Vector3.new(0, 1e6, 0) + (victimHRP.Position - v.Position).Unit * 1e6
-                                    end
-                                end
-                            end)
-                            
+                            -- Continuous Update
                             v.CanCollide = true
-                            v.Velocity = (finalTargetHRP.Position - v.Position).Unit * 2000
-                            
-                            -- Auto-cleanup
-                            game:GetService("Debris"):AddItem(a1, 0.1)
-                            game:GetService("Debris"):AddItem(al, 0.1)
+                            v.Velocity = (finalTargetHRP.Position - v.Position).Unit * 500
                         end
                     end
                 end
@@ -216,56 +212,62 @@ task.spawn(function()
     end
 end)
 
--- RED ESP Logic (Box & Names)
-local function CreateESP(p)
-    local function ApplyESP(char)
-        if not char then return end
-        local root = char:WaitForChild("HumanoidRootPart", 5)
-        if not root then return end
-        
-        local folder = char:FindFirstChild("WallhanESP") or Instance.new("Folder", char)
-        folder.Name = "WallhanESP"
-        
-        -- RED BOX (Highlight)
-        local h = folder:FindFirstChild("Highlight") or Instance.new("Highlight", folder)
-        h.FillTransparency = 1
-        h.OutlineColor = Color3.new(1, 0, 0)
-        h.OutlineTransparency = 0
-        h.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
-        
-        -- RED NAME TAG
-        local bg = folder:FindFirstChild("BillboardGui") or Instance.new("BillboardGui", folder)
-        bg.Size = UDim2.new(0, 200, 0, 50)
-        bg.Adornee = char:FindFirstChild("Head") or root
-        bg.AlwaysOnTop = true
-        bg.ExtentsOffset = Vector3.new(0, 3, 0)
-        
-        local tl = bg:FindFirstChild("TextLabel") or Instance.new("TextLabel", bg)
-        tl.Size = UDim2.new(1, 0, 1, 0)
-        tl.BackgroundTransparency = 1
-        tl.Text = p.Name .. " [" .. math.floor((LocalPlayer.Character.HumanoidRootPart.Position - root.Position).Magnitude) .. "m]"
-        tl.TextColor3 = Color3.new(1, 0, 0)
-        tl.Font = Enum.Font.SourceSansBold
-        tl.TextSize = 16
-        tl.TextStrokeTransparency = 1
+-- DOOR & PLAYER ESP Logic
+RunService.RenderStepped:Connect(function()
+    -- Player ESP
+    for _, p in pairs(Players:GetPlayers()) do
+        if p ~= LocalPlayer and p.Character then
+            local char = p.Character
+            local esp = char:FindFirstChild("WallhanPlayerESP")
+            if _G_States.ESP then
+                if not esp then
+                    local folder = Instance.new("Folder", char)
+                    folder.Name = "WallhanPlayerESP"
+                    local h = Instance.new("Highlight", folder)
+                    h.FillTransparency = 1
+                    h.OutlineColor = Color3.new(1, 0, 0)
+                    h.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+                    local bg = Instance.new("BillboardGui", folder)
+                    bg.Size = UDim2.new(0, 200, 0, 50)
+                    bg.Adornee = char:FindFirstChild("Head")
+                    bg.AlwaysOnTop = true
+                    bg.ExtentsOffset = Vector3.new(0, 3, 0)
+                    local tl = Instance.new("TextLabel", bg)
+                    tl.Size = UDim2.new(1, 0, 1, 0)
+                    tl.BackgroundTransparency = 1
+                    tl.Text = p.Name
+                    tl.TextColor3 = Color3.new(1, 0, 0)
+                    tl.Font = Enum.Font.SourceSansBold
+                    tl.TextSize = 14
+                end
+            else
+                if esp then esp:Destroy() end
+            end
+        end
     end
     
-    p.CharacterAdded:Connect(ApplyESP)
-    if p.Character then ApplyESP(p.Character) end
-end
-
-RunService.Heartbeat:Connect(function()
-    if _G_States.ESP then
-        for _, p in pairs(Players:GetPlayers()) do
-            if p ~= LocalPlayer and p.Character then
-                CreateESP(p)
+    -- Door & Wood ESP
+    if _G_States.DoorESP then
+        for _, v in pairs(workspace:GetDescendants()) do
+            if v:IsA("BasePart") and not v.Anchored and (v.Name:lower():find("wood") or v.Name:lower():find("door") or v.Material == Enum.Material.Wood) then
+                if not v:FindFirstChild("WallhanDoorESP") then
+                    local bg = Instance.new("BillboardGui", v)
+                    bg.Name = "WallhanDoorESP"
+                    bg.Size = UDim2.new(0, 100, 0, 30)
+                    bg.AlwaysOnTop = true
+                    local tl = Instance.new("TextLabel", bg)
+                    tl.Size = UDim2.new(1, 0, 1, 0)
+                    tl.BackgroundTransparency = 1
+                    tl.Text = "[ " .. v.Name .. " ]"
+                    tl.TextColor3 = Color3.new(1, 1, 0) -- Yellow for objects
+                    tl.Font = Enum.Font.SourceSansBold
+                    tl.TextSize = 10
+                end
             end
         end
     else
-        for _, p in pairs(Players:GetPlayers()) do
-            if p.Character and p.Character:FindFirstChild("WallhanESP") then
-                p.Character.WallhanESP:Destroy()
-            end
+        for _, v in pairs(workspace:GetDescendants()) do
+            if v:FindFirstChild("WallhanDoorESP") then v.WallhanDoorESP:Destroy() end
         end
     end
 end)
