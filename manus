@@ -1,0 +1,120 @@
+-- [[ GUARANTEED MOBILE UI FOR DELTA ]]
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local LocalPlayer = Players.LocalPlayer
+local Mouse = LocalPlayer:GetMouse()
+
+local _G_States = { WoodShield = false }
+local targetName = ""
+
+-- [[ UI CREATION - USING CORE GUI WITH PROTECTION ]]
+local sg = Instance.new("ScreenGui")
+sg.Name = "DeltaWallhan"
+sg.ResetOnSpawn = false
+-- Try to parent to CoreGui, fallback to PlayerGui
+local success, err = pcall(function()
+    sg.Parent = game:GetService("CoreGui")
+end)
+if not success then
+    sg.Parent = LocalPlayer:WaitForChild("PlayerGui")
+end
+
+local Main = Instance.new("Frame", sg)
+Main.Size = UDim2.new(0, 200, 0, 150)
+Main.Position = UDim2.new(0.5, -100, 0.2, 0) -- Positioned higher for mobile keyboard
+Main.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+Main.BorderSizePixel = 2
+Main.BorderColor3 = Color3.new(1, 1, 1)
+Main.Active = true
+Main.Draggable = true
+
+local Title = Instance.new("TextLabel", Main)
+Title.Size = UDim2.new(1, 0, 0, 30)
+Title.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+Title.Text = "WOOD TARGET V3"
+Title.TextColor3 = Color3.new(1, 1, 1)
+Title.Font = Enum.Font.SourceSansBold
+Title.TextSize = 16
+
+local inp = Instance.new("TextBox", Main)
+inp.Size = UDim2.new(0.9, 0, 0, 35)
+inp.Position = UDim2.new(0.05, 0, 0.3, 0)
+inp.PlaceholderText = "Target Name..."
+inp.Text = ""
+inp.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+inp.TextColor3 = Color3.new(1, 1, 1)
+inp.Font = Enum.Font.SourceSans
+inp.TextSize = 14
+inp:GetPropertyChangedSignal("Text"):Connect(function()
+    targetName = inp.Text
+end)
+
+local Toggle = Instance.new("TextButton", Main)
+Toggle.Size = UDim2.new(0.9, 0, 0, 40)
+Toggle.Position = UDim2.new(0.05, 0, 0.65, 0)
+Toggle.Font = Enum.Font.SourceSansBold
+Toggle.TextSize = 14
+local function Upd()
+    Toggle.Text = "WOOD SHIELD: " .. (_G_States.WoodShield and "ON" or "OFF")
+    Toggle.BackgroundColor3 = _G_States.WoodShield and Color3.fromRGB(0, 150, 0) or Color3.fromRGB(60, 60, 60)
+end
+Toggle.MouseButton1Click:Connect(function()
+    _G_States.WoodShield = not _G_States.WoodShield
+    Upd()
+end)
+Upd()
+
+-- Toggle Button (Always Visible)
+local TogBtn = Instance.new("TextButton", sg)
+TogBtn.Size = UDim2.new(0, 45, 0, 45)
+TogBtn.Position = UDim2.new(0, 10, 0, 50)
+TogBtn.Text = "OPEN"
+TogBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+TogBtn.TextColor3 = Color3.new(1, 1, 1)
+TogBtn.Font = Enum.Font.SourceSansBold
+TogBtn.Draggable = true
+TogBtn.MouseButton1Click:Connect(function()
+    Main.Visible = not Main.Visible
+    TogBtn.Text = Main.Visible and "CLOSE" or "OPEN"
+end)
+
+-- [[ CORE LOGIC - ORIGINAL PULL FUNCTION ]]
+task.spawn(function()
+    local angle = 0
+    while true do
+        if _G_States.WoodShield and LocalPlayer.Character then
+            angle = angle + 4
+            local hrp = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+            if hrp then
+                local currentTargetHRP = hrp
+                if targetName ~= "" then
+                    for _, p in pairs(Players:GetPlayers()) do
+                        if p.Name:lower():find(targetName:lower()) and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
+                            currentTargetHRP = p.Character.HumanoidRootPart
+                            break
+                        end
+                    end
+                end
+
+                for _, v in pairs(workspace:GetDescendants()) do
+                    if v:IsA("BasePart") and not v.Anchored and not v:IsDescendantOf(LocalPlayer.Character) then
+                        if v.Name:lower():find("wood") or v.Name:lower():find("door") or v.Material == Enum.Material.Wood then
+                            for _, m in pairs(v:GetChildren()) do
+                                if m:IsA("BodyMover") or m:IsA("AlignPosition") or m:IsA("Attachment") then m:Destroy() end
+                            end
+                            local a0, a1 = Instance.new("Attachment", v), Instance.new("Attachment", currentTargetHRP)
+                            local al = Instance.new("AlignPosition", v)
+                            al.Attachment0, al.Attachment1 = a0, a1
+                            al.MaxForce, al.MaxVelocity, al.Responsiveness = math.huge, math.huge, 500
+                            a1.Position = Vector3.new(math.cos(angle)*1.2, 0, math.sin(angle)*1.2)
+                            v.Velocity = Vector3.new(1000, 1000, 1000)
+                            v.CanCollide = false
+                            game:GetService("Debris"):AddItem(a1, 0.1)
+                        end
+                    end
+                end
+            end
+        end
+        RunService.Heartbeat:Wait()
+    end
+end)
