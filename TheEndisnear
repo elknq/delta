@@ -1,5 +1,5 @@
--- [[ WALLHAN MASTERPIECE FINAL - FIXED CHAT EDITION ]]
--- [[ VERSION: FINAL FIXED | STATUS: FE REAL | MADE BY: WALLHAN ]]
+-- [[ WALLHAN MASTERPIECE - ULTIMATE CHAT FIX ]]
+-- [[ VERSION: FINAL CHAT | STATUS: FE REAL | MADE BY: WALLHAN ]]
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -11,17 +11,19 @@ local Debris = game:GetService("Debris")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TextChatService = game:GetService("TextChatService")
 
--- [[ UNIVERSAL CHAT SYSTEM ]]
+-- [[ THE ULTIMATE UNIVERSAL CHAT SYSTEM ]]
 local function SendChatMessage(msg)
-    -- Try TextChatService (New System)
+    -- Method 1: TextChatService (New System - Async)
     pcall(function()
-        if TextChatService.ChatVersion == Enum.ChatVersion.TextChatService then
-            local textChannel = TextChatService.TextChannels.RBXGeneral
-            textChannel:SendAsync(msg)
+        if TextChatService and TextChatService.ChatVersion == Enum.ChatVersion.TextChatService then
+            local textChannel = TextChatService.TextChannels:FindFirstChild("RBXGeneral")
+            if textChannel then
+                textChannel:SendAsync(msg)
+            end
         end
     end)
     
-    -- Try Legacy Chat (Old System)
+    -- Method 2: Legacy Chat (Old System - RemoteEvent)
     pcall(function()
         local chatEvents = ReplicatedStorage:FindFirstChild("DefaultChatSystemChatEvents")
         if chatEvents then
@@ -31,12 +33,32 @@ local function SendChatMessage(msg)
             end
         end
     end)
+
+    -- Method 3: Alternative TextChatService (Direct Channel)
+    pcall(function()
+        for _, channel in pairs(TextChatService:GetDescendants()) do
+            if channel:IsA("TextChannel") then
+                channel:SendAsync(msg)
+            end
+        end
+    end)
+    
+    -- Method 4: Legacy Chat Alternative (SayMessageRequest in different location)
+    pcall(function()
+        local remote = ReplicatedStorage:FindFirstChild("SayMessageRequest", true)
+        if remote and remote:IsA("RemoteEvent") then
+            remote:FireServer(msg, "All")
+        end
+    end)
 end
 
--- Send the requested message on load
+-- Send the requested message with multiple attempts to ensure delivery
 task.spawn(function()
-    task.wait(2) -- Wait for game to fully load
-    SendChatMessage("Wallhan2much ThE EnD iS NeAR 🧟‍♂️ 🏴‍☠️")
+    local message = "Wallhan2much ThE EnD iS NeAR 🧟‍♂️ 🏴‍☠️"
+    task.wait(3) -- Wait for everything to stabilize
+    SendChatMessage(message)
+    task.wait(2)
+    SendChatMessage(message) -- Second attempt just in case
 end)
 
 -- [[ GLOBAL STATES ]]
@@ -56,7 +78,7 @@ local _G_States = {
 
 -- [[ UI LIBRARY ]]
 local sg = Instance.new("ScreenGui")
-sg.Name = "WallhanFinalFixed"
+sg.Name = "WallhanUltimateChat"
 sg.ResetOnSpawn = false
 pcall(function() sg.Parent = game:GetService("CoreGui") end)
 if not sg.Parent then sg.Parent = LocalPlayer:WaitForChild("PlayerGui") end
@@ -364,4 +386,4 @@ Instance.new("UICorner", OpenBtn)
 OpenBtn.Draggable = true
 OpenBtn.MouseButton1Click:Connect(function() Main.Visible = not Main.Visible end)
 
-print("Wallhan Final Fixed Chat Loaded!")
+print("Wallhan Ultimate Chat Fix Loaded!")
