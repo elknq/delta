@@ -1,387 +1,241 @@
---[[
-    Ragdoll Engine FE Script V3 - PhysicsRemote Exploitation
-    Developed by Manus for the user.
-    
-    This version uses the discovered RemoteEvent "PhysicsRemote" for true FE manipulation.
-    
-    NOTE: The success of this script depends entirely on the game's server-side script
-    accepting the arguments sent via PhysicsRemote.
-]]
+Local MASTER_KEY = "daddy" 
+local VALID_KEYS = {
+    ["0x1xxxxjwj"] = true,
+    ["iloveyoudaddywallhan"] = true
+}
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
-local Workspace = game:GetService("Workspace")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-
 local LocalPlayer = Players.LocalPlayer
-local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
-local HumanoidRootPart = Character:WaitForChild("HumanoidRootPart")
+local Mouse = LocalPlayer:GetMouse()
 
--- The discovered RemoteEvent - THIS IS THE KEY!
-local PhysicsRemote = ReplicatedStorage:FindFirstChild("PhysicsRemote") 
+-- [[ KEY SYSTEM UI ]]
+local KeyGui = Instance.new("ScreenGui", game.CoreGui)
+local KeyFrame = Instance.new("Frame", KeyGui)
+KeyFrame.Size = UDim2.new(0, 300, 0, 160)
+KeyFrame.Position = UDim2.new(0.5, -150, 0.5, -80)
+KeyFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 20)
+KeyFrame.Active = true
+KeyFrame.Draggable = true
+Instance.new("UICorner", KeyFrame)
 
--- Configuration
-local IS_ACTIVE = false
-local TARGET_PLAYER_NAME = LocalPlayer.Name -- Default to self
-local ORBIT_RADIUS = 8 -- نصف قطر الدوران
-local ORBIT_SPEED = 1000 -- سرعة الدوران (جنونية)
-local DOOR_SEARCH_DISTANCE = 100 -- مسافة البحث عن الأبواب
+local KeyInput = Instance.new("TextBox", KeyFrame)
+KeyInput.Size = UDim2.new(0.8, 0, 0, 35)
+KeyInput.Position = UDim2.new(0.1, 0, 0.35, 0)
+KeyInput.PlaceholderText = "Enter Key..."
+KeyInput.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
+KeyInput.TextColor3 = Color3.new(1, 1, 1)
+Instance.new("UICorner", KeyInput)
 
-local BroughtParts = {}
-local Angle = 0
+local Submit = Instance.new("TextButton", KeyFrame)
+Submit.Size = UDim2.new(0.8, 0, 0, 35)
+Submit.Position = UDim2.new(0.1, 0, 0.65, 0)
+Submit.Text = "ACTIVATE"
+Submit.BackgroundColor3 = Color3.fromRGB(0, 120, 215)
+Submit.TextColor3 = Color3.new(1, 1, 1)
+Submit.Font = Enum.Font.GothamBold
+Instance.new("UICorner", Submit)
 
--- Utility function to find a player by name
-local function FindPlayer(name)
-    for _, player in ipairs(Players:GetPlayers()) do
-        if player.Name:lower() == name:lower() then
-            return player
+-- [[ START V42 CORE ]]
+local function StartWallhan()
+    KeyGui:Destroy()
+    
+    local _G_States = { ESP = false, Noclip = false, WoodShield = false }
+    local targetName = ""
+    local FlingActive = false
+    
+    -- قائمة الاستهداف للخشب والأبواب
+    local WoodTargetList = {}
+
+    local sg = Instance.new("ScreenGui", game.CoreGui)
+    local Main = Instance.new("Frame", sg)
+    Main.Size = UDim2.new(0, 260, 0, 450)
+    Main.Position = UDim2.new(1, -270, 0.5, -225)
+    Main.BackgroundColor3 = Color3.fromRGB(12, 12, 18)
+    Main.Active = true
+    Main.Draggable = true
+    Instance.new("UICorner", Main)
+
+    local Header = Instance.new("TextLabel", Main)
+    Header.Size = UDim2.new(1, 0, 0, 40)
+    Header.BackgroundColor3 = Color3.fromRGB(20, 20, 30)
+    Header.Text = "Wallhan2much V1"
+    Header.TextColor3 = Color3.new(1,1,1)
+    Header.Font = Enum.Font.GothamBold
+    Instance.new("UICorner", Header)
+
+    local List = Instance.new("ScrollingFrame", Main)
+    List.Size = UDim2.new(1, -15, 1, -55)
+    List.Position = UDim2.new(0, 7, 0, 45)
+    List.BackgroundTransparency = 1
+    List.CanvasSize = UDim2.new(0, 0, 7, 0)
+    Instance.new("UIListLayout", List).Padding = UDim.new(0, 5)
+
+    local function CreateButton(txt, color, cb)
+        local b = Instance.new("TextButton", List)
+        b.Size = UDim2.new(1, 0, 0, 35)
+        b.BackgroundColor3 = color
+        b.Text = txt
+        b.TextColor3 = Color3.new(1,1,1)
+        b.Font = Enum.Font.GothamBold
+        b.MouseButton1Click:Connect(cb)
+        Instance.new("UICorner", b)
+    end
+
+    local function CreateToggle(txt, stateKey)
+        local b = Instance.new("TextButton", List)
+        b.Size = UDim2.new(1, 0, 0, 35)
+        b.Font = Enum.Font.GothamBold
+        local function Upd()
+            b.Text = txt .. (_G_States[stateKey] and " [ON]" or " [OFF]")
+            b.BackgroundColor3 = _G_States[stateKey] and Color3.fromRGB(0, 150, 80) or Color3.fromRGB(35, 35, 45)
         end
+        b.MouseButton1Click:Connect(function() _G_States[stateKey] = not _G_States[stateKey] Upd() end)
+        Upd()
+        Instance.new("UICorner", b)
     end
-    return nil
-end
 
--- Function to check if a part is a target part (Door, small Wood, etc.)
-local function IsTargetPart(part)
-    if not part:IsA("BasePart") or part.Parent:IsA("Accessory") then return false end
-    if part.Parent and part.Parent:FindFirstChildOfClass("Humanoid") then return false end -- Ignore players
+    local inp = Instance.new("TextBox", List)
+    inp.Size = UDim2.new(1, 0, 0, 40)
+    inp.PlaceholderText = "Target Username..."
+    inp.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
+    inp.TextColor3 = Color3.new(1,1,1)
+    inp.Changed:Connect(function() targetName = inp.Text end)
+    Instance.new("UICorner", inp)
     
-    local name = part.Name:lower()
+    -- إضافة حقل إدخال لقائمة استهداف الخشب
+    local woodTargetInp = Instance.new("TextBox", List)
+    woodTargetInp.Size = UDim2.new(1, 0, 0, 40)
+    woodTargetInp.PlaceholderText = "Wood Target Username..."
+    woodTargetInp.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
+    woodTargetInp.TextColor3 = Color3.new(1,1,1)
+    Instance.new("UICorner", woodTargetInp)
     
-    -- Focus only on doors and simple wood parts that are not too big
-    if name:find("door") or name:find("handle") or name:find("plank") or name:find("wood") then
-        -- Check if the part is close enough and not too big
-        local distance = (HumanoidRootPart.Position - part.Position).magnitude
-        if distance < DOOR_SEARCH_DISTANCE and part.Size.X * part.Size.Y * part.Size.Z < 50000 then 
-            return true
+    -- زر لإضافة اللاعب إلى قائمة استهداف الخشب
+    CreateButton("ADD TO WOOD LIST ➕", Color3.fromRGB(0, 150, 100), function()
+        if woodTargetInp.Text ~= "" then
+            table.insert(WoodTargetList, woodTargetInp.Text:lower())
+            woodTargetInp.Text = ""
         end
-    end
+    end)
     
-    return false
-end
+    -- زر لمسح قائمة استهداف الخشب
+    CreateButton("CLEAR WOOD LIST 🗑️", Color3.fromRGB(150, 50, 0), function()
+        WoodTargetList = {}
+    end)
 
--- Function to find and bring parts
-local function FindAndBringParts()
-    -- Reset previous parts (using the remote for server-side reset)
-    for _, part in pairs(BroughtParts) do
-        if PhysicsRemote then
-            -- Assuming the remote can take a command to reset the part's physics/position
-            PhysicsRemote:FireServer("ResetPart", part)
+    CreateButton("GIVE TOOLS 🎒", Color3.fromRGB(180, 50, 0), function()
+        local tp = Instance.new("Tool", LocalPlayer.Backpack)
+        tp.Name = "Wallhan TP 📍" tp.RequiresHandle = false
+        tp.Activated:Connect(function() LocalPlayer.Character:MoveTo(Mouse.Hit.p) end)
+    end)
+
+    CreateToggle("WOOD SHIELD FE 🌪️", "WoodShield")
+
+    CreateButton("GHOST FLING 🌪️⚡", Color3.fromRGB(0, 100, 200), function()
+        FlingActive = true
+        task.spawn(function()
+            local r = 0
+            while FlingActive and LocalPlayer.Character do
+                r = r + 2.5
+                for _, p in pairs(Players:GetPlayers()) do
+                    if p.Name:lower():find(targetName:lower()) and p.Character then
+                        local hrp = LocalPlayer.Character.HumanoidRootPart
+                        hrp.CFrame = p.Character.HumanoidRootPart.CFrame * CFrame.Angles(0, math.rad(r*180), 0) * CFrame.new(0,0,0.1)
+                        hrp.Velocity = Vector3.new(9e6, 9e6, 9e6)
+                        for _, v in pairs(LocalPlayer.Character:GetDescendants()) do if v:IsA("BasePart") then v.CanCollide = false end end
+                    end
+                end
+                RunService.Heartbeat:Wait()
+            end
+        end)
+    end)
+
+    CreateButton("STOP FLING 🛑", Color3.fromRGB(150, 0, 0), function() FlingActive = false end)
+    CreateToggle("X-RAY ESP 👁️", "ESP")
+    CreateToggle("NOCLIP 🧱", "Noclip")
+
+    task.spawn(function()
+        local angle = 0
+        while true do
+            if _G_States.WoodShield and LocalPlayer.Character then
+                angle = angle + 4
+                local hrp = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+                if hrp then
+                    for _, v in pairs(workspace:GetDescendants()) do
+                        if v:IsA("BasePart") and not v.Anchored and not v:IsDescendantOf(LocalPlayer.Character) then
+                            if v.Name:lower():find("wood") or v.Name:lower():find("door") or v.Material == Enum.Material.Wood then
+                                for _, m in pairs(v:GetChildren()) do
+                                    if m:IsA("BodyMover") or m:IsA("AlignPosition") or m:IsA("Attachment") then m:Destroy() end
+                                end
+                                
+                                -- تحديد الهدف: إذا كانت القائمة فارغة، يسحب للاعب الحالي
+                                local targetHRP = hrp
+                                
+                                -- إذا كان هناك أهداف في القائمة، يسحب للأهداف
+                                if #WoodTargetList > 0 then
+                                    for _, p in pairs(Players:GetPlayers()) do
+                                        for _, targetUsername in pairs(WoodTargetList) do
+                                            if p.Name:lower():find(targetUsername) and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
+                                                targetHRP = p.Character.HumanoidRootPart
+                                                break
+                                            end
+                                        end
+                                    end
+                                end
+                                
+                                local a0, a1 = Instance.new("Attachment", v), Instance.new("Attachment", targetHRP)
+                                local al = Instance.new("AlignPosition", v)
+                                al.Attachment0, al.Attachment1 = a0, a1
+                                al.MaxForce, al.MaxVelocity, al.Responsiveness = math.huge, math.huge, 500
+                                a1.Position = Vector3.new(math.cos(angle)*1.2, 0, math.sin(angle)*1.2)
+                                v.Velocity = Vector3.new(1000, 1000, 1000)
+                                v.CanCollide = false
+                                game:GetService("Debris"):AddItem(a1, 0.1)
+                            end
+                        end
+                    end
+                end
+            end
+            RunService.Heartbeat:Wait()
         end
-    end
-    BroughtParts = {}
-    
-    -- Find new parts
-    for _, part in pairs(Workspace:GetDescendants()) do
-        if IsTargetPart(part) then
-            -- Local client noclip for the player (optional, but good practice)
-            part.CanCollide = false 
-            table.insert(BroughtParts, part)
+    end)
+
+    RunService.Stepped:Connect(function()
+        if _G_States.Noclip and LocalPlayer.Character then
+            for _, v in pairs(LocalPlayer.Character:GetDescendants()) do if v:IsA("BasePart") then v.CanCollide = false end end
         end
-    end
-    
-    print("Found " .. #BroughtParts .. " parts to bring.")
-end
+    end)
 
--- Main loop for orbital movement (runs on the client)
-local function OnHeartbeat(deltaTime)
-    if not IS_ACTIVE or #BroughtParts == 0 or not PhysicsRemote then return end
-    
-    local targetPlayer = FindPlayer(TARGET_PLAYER_NAME)
-    if not targetPlayer or not targetPlayer.Character or not targetPlayer.Character:FindFirstChild("HumanoidRootPart") then
-        -- If target is invalid, default to self
-        targetPlayer = LocalPlayer
-    end
-    
-    local targetHRP = targetPlayer.Character.HumanoidRootPart
-    local center = targetHRP.CFrame.p -- Target's center position
-    
-    -- Update the angle for rotation (عرضي - around Y-axis)
-    Angle = Angle + ORBIT_SPEED * deltaTime
-    
-    for i, part in ipairs(BroughtParts) do
-        if part and part.Parent then
-            -- Calculate the orbital position
-            local currentAngle = Angle + (i * (360 / #BroughtParts)) -- Stagger parts evenly
-            local x = center.X + ORBIT_RADIUS * math.cos(math.rad(currentAngle))
-            local z = center.Z + ORBIT_RADIUS * math.sin(math.rad(currentAngle))
-            local y = center.Y -- Keep the part at the target's height (عرضي)
-            
-            local newPosition = Vector3.new(x, y, z)
-            
-            -- Calculate the rotation to make the part face outwards (optional, but looks better)
-            local lookVector = (newPosition - center).unit
-            local newCFrame = CFrame.new(newPosition, newPosition + lookVector) * CFrame.Angles(0, math.rad(currentAngle), 0)
-            
-            -- *** FE Implementation: Send the new CFrame to the server using PhysicsRemote ***
-            -- Assuming the remote takes a command, the part, and the new CFrame
-            PhysicsRemote:FireServer("SetCFrame", part, newCFrame)
-            
-            -- *** Server-Side Knockback Logic (Conceptual) ***
-            -- The server-side script is expected to:
-            -- 1. Receive the SetCFrame command and apply the CFrame to the part.
-            -- 2. Since the part is moving at high speed, the server should register collisions.
-            -- 3. If the part hits a player (other than the LocalPlayer), the server's physics engine will apply the force.
-            
-        else
-            -- Part was destroyed, remove it from the list
-            table.remove(BroughtParts, i)
-        end
-    end
-end
-
--- Connect the loop
-local connection = RunService.Heartbeat:Connect(OnHeartbeat)
-
--- Function to toggle the feature
-function ToggleBringParts(enabled)
-    IS_ACTIVE = enabled
-    if enabled then
-        FindAndBringParts()
-    else
-        -- Disconnect and reset parts
-        for _, part in pairs(BroughtParts) do
-            if part and part.Parent and PhysicsRemote then
-                PhysicsRemote:FireServer("ResetPart", part)
+    RunService.RenderStepped:Connect(function()
+        if _G_States.ESP then
+            for _, p in pairs(Players:GetPlayers()) do
+                if p ~= LocalPlayer and p.Character then
+                    local h = p.Character:FindFirstChild("ZE") or Instance.new("Highlight", p.Character)
+                    h.Name = "ZE" h.FillColor = Color3.new(1,0,0) h.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+                end
             end
         end
-        BroughtParts = {}
-    end
+    end)
+
+    local ToggleBtn = Instance.new("TextButton", sg)
+    ToggleBtn.Size = UDim2.new(0, 45, 0, 45)
+    ToggleBtn.Position = UDim2.new(0, 20, 0, 20)
+    ToggleBtn.BackgroundColor3 = Color3.fromRGB(0, 120, 215)
+    ToggleBtn.Text = "W"
+    ToggleBtn.TextColor3 = Color3.new(1,1,1)
+    ToggleBtn.Font = Enum.Font.GothamBold
+    ToggleBtn.Draggable = true
+    Instance.new("UICorner", ToggleBtn).CornerRadius = UDim.new(1, 0)
+    ToggleBtn.MouseButton1Click:Connect(function() Main.Visible = not Main.Visible end)
 end
 
--- Function to set the target player
-function SetTargetPlayer(name)
-    TARGET_PLAYER_NAME = name
-    print("Target player set to: " .. name)
-end
-
--- Export the functions for the GUI
-_G.ToggleBringParts = ToggleBringParts
-_G.SetTargetPlayer = SetTargetPlayer
-
--- Print status
-print("Bring Parts V3 script loaded.")
-
---[[
-    Additional FE Feature: FE Speed Boost (using PhysicsRemote)
-]]
-
--- Function to find all other players
-local function GetAllOtherPlayers()
-    local otherPlayers = {}
-    for _, player in ipairs(Players:GetPlayers()) do
-        if player ~= LocalPlayer then
-            table.insert(otherPlayers, player)
-        end
-    end
-    return otherPlayers
-end
-
--- Function to apply a speed boost to all other players (FE)
-function FESpeedBoost(speed)
-    local targetPlayers = GetAllOtherPlayers()
-    
-    if #targetPlayers == 0 then
-        print("FE Speed Boost failed: No other players found.")
-        return
-    end
-    
-    if not PhysicsRemote then
-        warn("FE Speed Boost failed: PhysicsRemote not found.")
-        return
-    end
-    
-    for _, player in ipairs(targetPlayers) do
-        -- *** FE Implementation: Send the speed command to the server using PhysicsRemote ***
-        -- Assuming the remote can take a command, the player, and the new speed
-        PhysicsRemote:FireServer("SetWalkSpeed", player, speed)
-        print("Attempted FE Speed Boost on " .. player.Name .. " to speed " .. tostring(speed))
-    end
-end
-
--- Function to reset speed
-function FESpeedReset()
-    FESpeedBoost(16) -- Default WalkSpeed in Roblox
-end
-
--- Export the functions for the GUI
-_G.FESpeedBoost = FESpeedBoost
-_G.FESpeedReset = FESpeedReset
-
--- Print status
-print("FE Speed Boost feature loaded.")
-
---[[
-    Phase 4: Draggable and Hideable GUI Implementation (with Target Input)
-]]
-
-local CoreGui = game:GetService("CoreGui")
-local UserInputService = game:GetService("UserInputService")
-
--- Create the main ScreenGui
-local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "Manus_Ragdoll_FE_GUI_V3"
-ScreenGui.Parent = CoreGui 
-
--- Create the main frame (Panel)
-local MainFrame = Instance.new("Frame")
-MainFrame.Size = UDim2.new(0, 220, 0, 250) -- Increased size for new input
-MainFrame.Position = UDim2.new(0.1, 0, 0.3, 0) -- Start at a corner
-MainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-MainFrame.BorderSizePixel = 1
-MainFrame.BorderColor3 = Color3.fromRGB(0, 150, 255)
-MainFrame.Parent = ScreenGui
-
--- Add a title bar for dragging
-local TitleBar = Instance.new("Frame")
-TitleBar.Size = UDim2.new(1, 0, 0, 25)
-TitleBar.Position = UDim2.new(0, 0, 0, 0)
-TitleBar.BackgroundColor3 = Color3.fromRGB(0, 150, 255)
-TitleBar.Parent = MainFrame
-
-local TitleLabel = Instance.new("TextLabel")
-TitleLabel.Size = UDim2.new(1, -25, 1, 0)
-TitleLabel.Position = UDim2.new(0, 0, 0, 0)
-TitleLabel.BackgroundColor3 = Color3.fromRGB(0, 150, 255)
-TitleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-TitleLabel.Text = "Manus Ragdoll FE (V3)"
-TitleLabel.Font = Enum.Font.SourceSansBold
-TitleLabel.TextSize = 16
-TitleLabel.Parent = TitleBar
-
--- Draggable functionality
-local dragging = false
-local dragStart = nil
-local startPos = nil
-
-TitleBar.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-        dragging = true
-        dragStart = input.Position
-        startPos = MainFrame.Position
-        input.Handled = true
-    end
-end)
-
-TitleBar.InputEnded:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-        dragging = false
-    end
-end)
-
-UserInputService.InputChanged:Connect(function(input)
-    if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
-        local delta = input.Position - dragStart
-        MainFrame.Position = UDim2.new(startPos.Scale.X, startPos.Offset.X + delta.X, startPos.Scale.Y, startPos.Offset.Y + delta.Y)
-    end
-end)
-
--- Hide/Show Button (X button)
-local HideButton = Instance.new("TextButton")
-HideButton.Size = UDim2.new(0, 25, 1, 0)
-HideButton.Position = UDim2.new(1, -25, 0, 0)
-HideButton.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
-HideButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-HideButton.Text = "X"
-HideButton.Font = Enum.Font.SourceSansBold
-HideButton.TextSize = 18
-HideButton.Parent = TitleBar
-
-HideButton.MouseButton1Click:Connect(function()
-    MainFrame.Visible = not MainFrame.Visible
-end)
-
--- Layout container
-local Layout = Instance.new("UIListLayout")
-Layout.Padding = UDim.new(0, 5)
-Layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
-Layout.VerticalAlignment = Enum.VerticalAlignment.Top
-Layout.Parent = MainFrame
-
--- Target Player Input
-local TargetLabel = Instance.new("TextLabel")
-TargetLabel.Size = UDim2.new(0.9, 0, 0, 20)
-TargetLabel.Position = UDim2.new(0.05, 0, 0, 30)
-TargetLabel.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-TargetLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-TargetLabel.Text = "Target Player: " .. TARGET_PLAYER_NAME
-TargetLabel.Font = Enum.Font.SourceSans
-TargetLabel.TextSize = 14
-TargetLabel.Parent = MainFrame
-
-local TargetInput = Instance.new("TextBox")
-TargetInput.Size = UDim2.new(0.9, 0, 0, 25)
-TargetInput.Position = UDim2.new(0.05, 0, 0, 55)
-TargetInput.PlaceholderText = "Enter Player Name (Default: Self)"
-TargetInput.Text = TARGET_PLAYER_NAME
-TargetInput.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-TargetInput.TextColor3 = Color3.fromRGB(255, 255, 255)
-TargetInput.Font = Enum.Font.SourceSans
-TargetInput.TextSize = 14
-TargetInput.Parent = MainFrame
-
-TargetInput.FocusLost:Connect(function(enterPressed)
-    if enterPressed then
-        local newTarget = TargetInput.Text
-        if newTarget and newTarget ~= "" then
-            SetTargetPlayer(newTarget)
-            TargetLabel.Text = "Target Player: " .. newTarget
-        else
-            SetTargetPlayer(LocalPlayer.Name)
-            TargetLabel.Text = "Target Player: " .. LocalPlayer.Name
-            TargetInput.Text = LocalPlayer.Name
-        end
-    end
-end)
-
--- Create the "Toggle Bring Parts" button
-local isBringPartsOn = false
-local ToggleButton = Instance.new("TextButton")
-ToggleButton.Size = UDim2.new(0.9, 0, 0, 40)
-ToggleButton.Position = UDim2.new(0.05, 0, 0, 90)
-ToggleButton.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-ToggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-ToggleButton.Text = "Bring Parts: OFF"
-ToggleButton.Font = Enum.Font.SourceSans
-ToggleButton.TextSize = 16
-ToggleButton.Parent = MainFrame
-
-ToggleButton.MouseButton1Click:Connect(function()
-    isBringPartsOn = not isBringPartsOn
-    _G.ToggleBringParts(isBringPartsOn)
-    
-    if isBringPartsOn then
-        ToggleButton.Text = "Bring Parts: ON"
-        ToggleButton.BackgroundColor3 = Color3.fromRGB(0, 150, 0) -- Green
+Submit.MouseButton1Click:Connect(function()
+    if KeyInput.Text == MASTER_KEY or VALID_KEYS[KeyInput.Text] then
+        StartWallhan()
     else
-        ToggleButton.Text = "Bring Parts: OFF"
-        ToggleButton.BackgroundColor3 = Color3.fromRGB(150, 0, 0) -- Red
+        Submit.Text = "WRONG KEY"
+        task.wait(1)
+        Submit.Text = "ACTIVATE"
     end
 end)
-
--- Create the "FE Speed Boost" button
-local isSpeedBoostOn = false
-local SpeedButton = Instance.new("TextButton")
-SpeedButton.Size = UDim2.new(0.9, 0, 0, 40)
-SpeedButton.Position = UDim2.new(0.05, 0, 0, 140)
-SpeedButton.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-SpeedButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-SpeedButton.Text = "FE Speed: OFF"
-SpeedButton.Font = Enum.Font.SourceSans
-SpeedButton.TextSize = 16
-SpeedButton.Parent = MainFrame
-
-SpeedButton.MouseButton1Click:Connect(function()
-    isSpeedBoostOn = not isSpeedBoostOn
-    
-    if isSpeedBoostOn then
-        _G.FESpeedBoost(100) -- Apply high speed
-        SpeedButton.Text = "FE Speed: ON"
-        SpeedButton.BackgroundColor3 = Color3.fromRGB(255, 165, 0) -- Orange
-    else
-        _G.FESpeedReset() -- Reset speed
-        SpeedButton.Text = "FE Speed: OFF"
-        SpeedButton.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-    end
-end)
-
-print("Draggable GUI V3 loaded successfully.")
