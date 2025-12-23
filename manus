@@ -1,4 +1,4 @@
--- [[ WALLHAN V9 - FINAL STABLE EDITION ]]
+-- [[ WALLHAN V10 - FORCE EDITION ]]
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local LocalPlayer = Players.LocalPlayer
@@ -10,7 +10,7 @@ local checkpointPos = nil
 
 -- [[ UI CREATION ]]
 local sg = Instance.new("ScreenGui")
-sg.Name = "WallhanV9"
+sg.Name = "WallhanV10"
 sg.ResetOnSpawn = false
 local success, err = pcall(function() sg.Parent = game:GetService("CoreGui") end)
 if not success then sg.Parent = LocalPlayer:WaitForChild("PlayerGui") end
@@ -27,7 +27,7 @@ Main.Draggable = true
 local Title = Instance.new("TextLabel", Main)
 Title.Size = UDim2.new(1, 0, 0, 35)
 Title.BackgroundColor3 = Color3.fromRGB(40, 0, 0)
-Title.Text = "WALLHAN V9 STABLE"
+Title.Text = "WALLHAN V10 FORCE"
 Title.TextColor3 = Color3.new(1, 1, 1)
 Title.Font = Enum.Font.SourceSansBold
 Title.TextSize = 18
@@ -154,12 +154,10 @@ TogBtn.MouseButton1Click:Connect(function() Main.Visible = not Main.Visible end)
 
 -- [[ CORE LOGIC ]]
 
--- STABLE Wood Shield Logic
+-- FORCE Wood Shield Logic (BodyVelocity)
 task.spawn(function()
-    local angle = 0
     while true do
         if _G_States.WoodShield and LocalPlayer.Character then
-            angle = angle + 4
             local hrp = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
             if hrp then
                 local finalTargetHRP = hrp
@@ -170,42 +168,42 @@ task.spawn(function()
                 for _, v in pairs(workspace:GetDescendants()) do
                     if v:IsA("BasePart") and not v.Anchored and not v:IsDescendantOf(LocalPlayer.Character) then
                         if v.Name:lower():find("wood") or v.Name:lower():find("door") or v.Material == Enum.Material.Wood then
-                            -- Check if already has movers to avoid flickering/disappearing
-                            if not v:FindFirstChild("WallhanMover") then
-                                local a0 = Instance.new("Attachment", v)
-                                a0.Name = "WallhanMover"
-                                local a1 = Instance.new("Attachment", finalTargetHRP)
-                                a1.Name = "WallhanMover"
-                                local al = Instance.new("AlignPosition", v)
-                                al.Name = "WallhanMover"
-                                
-                                al.Attachment0 = a0
-                                al.Attachment1 = a1
-                                al.MaxForce = 1e12 -- High but stable force
-                                al.MaxVelocity = 1e12
-                                al.Responsiveness = 200
-                                
-                                -- Collision & Fling Logic
-                                v.Touched:Connect(function(hit)
-                                    if _G_States.WoodShield and hit.Parent:FindFirstChild("Humanoid") and hit.Parent ~= LocalPlayer.Character then
-                                        local victimHRP = hit.Parent:FindFirstChild("HumanoidRootPart")
-                                        if victimHRP then
-                                            victimHRP.Velocity = Vector3.new(0, 1e5, 0) + (victimHRP.Position - v.Position).Unit * 1e5
-                                        end
-                                    end
-                                end)
-                                
-                                game:GetService("Debris"):AddItem(a1, 0.1)
-                                game:GetService("Debris"):AddItem(al, 0.1)
-                                game:GetService("Debris"):AddItem(a0, 0.1)
+                            -- Use BodyVelocity for direct and forced movement
+                            local bv = v:FindFirstChild("WallhanBV") or Instance.new("BodyVelocity", v)
+                            bv.Name = "WallhanBV"
+                            bv.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+                            
+                            -- Calculate direction and force movement
+                            local direction = (finalTargetHRP.Position - v.Position).Unit
+                            local distance = (finalTargetHRP.Position - v.Position).Magnitude
+                            
+                            if distance > 5 then
+                                bv.Velocity = direction * 300 -- Fast travel to target
+                            else
+                                -- Orbit/Spin around target when close
+                                local orbit = Vector3.new(math.cos(tick()*10), 0, math.sin(tick()*10)) * 5
+                                bv.Velocity = (finalTargetHRP.Position + orbit - v.Position) * 50
                             end
                             
-                            -- Continuous Update
+                            -- Fling Logic on Touch
+                            v.Touched:Connect(function(hit)
+                                if _G_States.WoodShield and hit.Parent:FindFirstChild("Humanoid") and hit.Parent ~= LocalPlayer.Character then
+                                    local victimHRP = hit.Parent:FindFirstChild("HumanoidRootPart")
+                                    if victimHRP then
+                                        victimHRP.Velocity = Vector3.new(0, 1e6, 0) + (victimHRP.Position - v.Position).Unit * 1e6
+                                    end
+                                end
+                            end)
+                            
                             v.CanCollide = true
-                            v.Velocity = (finalTargetHRP.Position - v.Position).Unit * 500
                         end
                     end
                 end
+            end
+        else
+            -- Cleanup when OFF
+            for _, v in pairs(workspace:GetDescendants()) do
+                if v:FindFirstChild("WallhanBV") then v.WallhanBV:Destroy() end
             end
         end
         RunService.Heartbeat:Wait()
@@ -259,7 +257,7 @@ RunService.RenderStepped:Connect(function()
                     tl.Size = UDim2.new(1, 0, 1, 0)
                     tl.BackgroundTransparency = 1
                     tl.Text = "[ " .. v.Name .. " ]"
-                    tl.TextColor3 = Color3.new(1, 1, 0) -- Yellow for objects
+                    tl.TextColor3 = Color3.new(1, 1, 0)
                     tl.Font = Enum.Font.SourceSansBold
                     tl.TextSize = 10
                 end
