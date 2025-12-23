@@ -1,214 +1,176 @@
-Local MASTER_KEY = "daddy" 
-local VALID_KEYS = {
-    ["0x1xxxxjwj"] = true,
-    ["iloveyoudaddywallhan"] = true
-}
-
+-- [[ SIMPLE MOBILE SCRIPT FOR DELTA - NO KEY SYSTEM ]]
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local LocalPlayer = Players.LocalPlayer
 local Mouse = LocalPlayer:GetMouse()
 
--- [[ KEY SYSTEM UI ]]
-local KeyGui = Instance.new("ScreenGui", game.CoreGui)
-local KeyFrame = Instance.new("Frame", KeyGui)
-KeyFrame.Size = UDim2.new(0, 300, 0, 160)
-KeyFrame.Position = UDim2.new(0.5, -150, 0.5, -80)
-KeyFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 20)
-KeyFrame.Active = true
-KeyFrame.Draggable = true
-Instance.new("UICorner", KeyFrame)
+local _G_States = { WoodShield = false, Noclip = false, ESP = false }
+local targetName = ""
 
-local KeyInput = Instance.new("TextBox", KeyFrame)
-KeyInput.Size = UDim2.new(0.8, 0, 0, 35)
-KeyInput.Position = UDim2.new(0.1, 0, 0.35, 0)
-KeyInput.PlaceholderText = "Enter Key..."
-KeyInput.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
-KeyInput.TextColor3 = Color3.new(1, 1, 1)
-Instance.new("UICorner", KeyInput)
+-- [[ SIMPLE UI CREATION ]]
+local sg = Instance.new("ScreenGui", game.CoreGui)
+sg.Name = "SimpleWallhan"
 
-local Submit = Instance.new("TextButton", KeyFrame)
-Submit.Size = UDim2.new(0.8, 0, 0, 35)
-Submit.Position = UDim2.new(0.1, 0, 0.65, 0)
-Submit.Text = "ACTIVATE"
-Submit.BackgroundColor3 = Color3.fromRGB(0, 120, 215)
-Submit.TextColor3 = Color3.new(1, 1, 1)
-Submit.Font = Enum.Font.GothamBold
-Instance.new("UICorner", Submit)
+local Main = Instance.new("Frame", sg)
+Main.Size = UDim2.new(0, 220, 0, 300)
+Main.Position = UDim2.new(0.5, -110, 0.5, -150)
+Main.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+Main.BorderSizePixel = 2
+Main.BorderColor3 = Color3.fromRGB(255, 255, 255)
+Main.Active = true
+Main.Draggable = true -- Works on Delta
 
--- [[ START V42 CORE ]]
-local function StartWallhan()
-    KeyGui:Destroy()
-    
-    local _G_States = { ESP = false, Noclip = false, WoodShield = false }
-    local targetName = ""
-    local FlingActive = false
+local Title = Instance.new("TextLabel", Main)
+Title.Size = UDim2.new(1, 0, 0, 30)
+Title.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+Title.Text = "WALLHAN MOBILE"
+Title.TextColor3 = Color3.new(1, 1, 1)
+Title.Font = Enum.Font.SourceSansBold
+Title.TextSize = 18
 
-    local sg = Instance.new("ScreenGui", game.CoreGui)
-    local Main = Instance.new("Frame", sg)
-    Main.Size = UDim2.new(0, 260, 0, 400)
-    Main.Position = UDim2.new(1, -270, 0.5, -200)
-    Main.BackgroundColor3 = Color3.fromRGB(12, 12, 18)
-    Main.Active = true
-    Main.Draggable = true
-    Instance.new("UICorner", Main)
+local List = Instance.new("ScrollingFrame", Main)
+List.Size = UDim2.new(1, -10, 1, -40)
+List.Position = UDim2.new(0, 5, 0, 35)
+List.BackgroundTransparency = 1
+List.CanvasSize = UDim2.new(0, 0, 1.5, 0)
+List.ScrollBarThickness = 5
 
-    local Header = Instance.new("TextLabel", Main)
-    Header.Size = UDim2.new(1, 0, 0, 40)
-    Header.BackgroundColor3 = Color3.fromRGB(20, 20, 30)
-    Header.Text = "Wallhan2much V1"
-    Header.TextColor3 = Color3.new(1,1,1)
-    Header.Font = Enum.Font.GothamBold
-    Instance.new("UICorner", Header)
+local layout = Instance.new("UIListLayout", List)
+layout.Padding = UDim.new(0, 5)
 
-    local List = Instance.new("ScrollingFrame", Main)
-    List.Size = UDim2.new(1, -15, 1, -55)
-    List.Position = UDim2.new(0, 7, 0, 45)
-    List.BackgroundTransparency = 1
-    List.CanvasSize = UDim2.new(0, 0, 6, 0)
-    Instance.new("UIListLayout", List).Padding = UDim.new(0, 5)
+local function CreateButton(txt, cb)
+    local b = Instance.new("TextButton", List)
+    b.Size = UDim2.new(1, 0, 0, 35)
+    b.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+    b.Text = txt
+    b.TextColor3 = Color3.new(1, 1, 1)
+    b.Font = Enum.Font.SourceSansBold
+    b.MouseButton1Click:Connect(cb)
+    return b
+end
 
-    local function CreateButton(txt, color, cb)
-        local b = Instance.new("TextButton", List)
-        b.Size = UDim2.new(1, 0, 0, 35)
-        b.BackgroundColor3 = color
-        b.Text = txt
-        b.TextColor3 = Color3.new(1,1,1)
-        b.Font = Enum.Font.GothamBold
-        b.MouseButton1Click:Connect(cb)
-        Instance.new("UICorner", b)
+local function CreateToggle(txt, key)
+    local b = Instance.new("TextButton", List)
+    b.Size = UDim2.new(1, 0, 0, 35)
+    local function Upd()
+        b.Text = txt .. (_G_States[key] and " [ON]" or " [OFF]")
+        b.BackgroundColor3 = _G_States[key] and Color3.fromRGB(0, 150, 0) or Color3.fromRGB(60, 60, 60)
     end
+    b.MouseButton1Click:Connect(function() _G_States[key] = not _G_States[key] Upd() end)
+    Upd()
+    return b
+end
 
-    local function CreateToggle(txt, stateKey)
-        local b = Instance.new("TextButton", List)
-        b.Size = UDim2.new(1, 0, 0, 35)
-        b.Font = Enum.Font.GothamBold
-        local function Upd()
-            b.Text = txt .. (_G_States[stateKey] and " [ON]" or " [OFF]")
-            b.BackgroundColor3 = _G_States[stateKey] and Color3.fromRGB(0, 150, 80) or Color3.fromRGB(35, 35, 45)
-        end
-        b.MouseButton1Click:Connect(function() _G_States[stateKey] = not _G_States[stateKey] Upd() end)
-        Upd()
-        Instance.new("UICorner", b)
-    end
+local function CreateInput(placeholder)
+    local i = Instance.new("TextBox", List)
+    i.Size = UDim2.new(1, 0, 0, 35)
+    i.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+    i.PlaceholderText = placeholder
+    i.Text = ""
+    i.TextColor3 = Color3.new(1, 1, 1)
+    i.Changed:Connect(function() targetName = i.Text end)
+    return i
+end
 
-    local inp = Instance.new("TextBox", List)
-    inp.Size = UDim2.new(1, 0, 0, 40)
-    inp.PlaceholderText = "Target Username..."
-    inp.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
-    inp.TextColor3 = Color3.new(1,1,1)
-    inp.Changed:Connect(function() targetName = inp.Text end)
-    Instance.new("UICorner", inp)
+-- UI Elements
+local woodInp = CreateInput("Target Username")
+CreateToggle("WOOD SHIELD", "WoodShield")
 
-    CreateButton("GIVE TOOLS 🎒", Color3.fromRGB(180, 50, 0), function()
-        local tp = Instance.new("Tool", LocalPlayer.Backpack)
-        tp.Name = "Wallhan TP 📍" tp.RequiresHandle = false
-        tp.Activated:Connect(function() LocalPlayer.Character:MoveTo(Mouse.Hit.p) end)
-    end)
-
-    CreateToggle("WOOD SHIELD FE 🌪️", "WoodShield")
-
-    CreateButton("GHOST FLING 🌪️⚡", Color3.fromRGB(0, 100, 200), function()
-        FlingActive = true
-        task.spawn(function()
-            local r = 0
-            while FlingActive and LocalPlayer.Character do
-                r = r + 2.5
-                for _, p in pairs(Players:GetPlayers()) do
-                    if p.Name:lower():find(targetName:lower()) and p.Character then
-                        local hrp = LocalPlayer.Character.HumanoidRootPart
-                        hrp.CFrame = p.Character.HumanoidRootPart.CFrame * CFrame.Angles(0, math.rad(r*180), 0) * CFrame.new(0,0,0.1)
-                        hrp.Velocity = Vector3.new(9e6, 9e6, 9e6)
-                        for _, v in pairs(LocalPlayer.Character:GetDescendants()) do if v:IsA("BasePart") then v.CanCollide = false end end
-                    end
-                end
-                RunService.Heartbeat:Wait()
-            end
-        end)
-    end)
-
-    CreateButton("STOP FLING 🛑", Color3.fromRGB(150, 0, 0), function() FlingActive = false end)
-    CreateToggle("X-RAY ESP 👁️", "ESP")
-    CreateToggle("NOCLIP 🧱", "Noclip")
-
+local flingInp = CreateInput("Fling Username")
+local FlingActive = false
+CreateButton("GHOST FLING", function()
+    FlingActive = true
     task.spawn(function()
-        local angle = 0
-        while true do
-            if _G_States.WoodShield and LocalPlayer.Character then
-                angle = angle + 4
-                local hrp = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-                if hrp then
-                    -- [[ MODIFIED TARGET LOGIC ]]
-                    local currentTargetHRP = hrp
-                    if targetName ~= "" then
-                        for _, p in pairs(Players:GetPlayers()) do
-                            if p.Name:lower():find(targetName:lower()) and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
-                                currentTargetHRP = p.Character.HumanoidRootPart
-                                break
-                            end
-                        end
-                    end
-                    -- [[ END MODIFIED TARGET LOGIC ]]
-
-                    for _, v in pairs(workspace:GetDescendants()) do
-                        if v:IsA("BasePart") and not v.Anchored and not v:IsDescendantOf(LocalPlayer.Character) then
-                            if v.Name:lower():find("wood") or v.Name:lower():find("door") or v.Material == Enum.Material.Wood then
-                                for _, m in pairs(v:GetChildren()) do
-                                    if m:IsA("BodyMover") or m:IsA("AlignPosition") or m:IsA("Attachment") then m:Destroy() end
-                                end
-                                -- Using currentTargetHRP instead of hrp
-                                local a0, a1 = Instance.new("Attachment", v), Instance.new("Attachment", currentTargetHRP)
-                                local al = Instance.new("AlignPosition", v)
-                                al.Attachment0, al.Attachment1 = a0, a1
-                                al.MaxForce, al.MaxVelocity, al.Responsiveness = math.huge, math.huge, 500
-                                a1.Position = Vector3.new(math.cos(angle)*1.2, 0, math.sin(angle)*1.2)
-                                v.Velocity = Vector3.new(1000, 1000, 1000)
-                                v.CanCollide = false
-                                game:GetService("Debris"):AddItem(a1, 0.1)
-                            end
-                        end
-                    end
+        local r = 0
+        while FlingActive and LocalPlayer.Character do
+            r = r + 2.5
+            for _, p in pairs(Players:GetPlayers()) do
+                if p.Name:lower():find(flingInp.Text:lower()) and p.Character then
+                    local hrp = LocalPlayer.Character.HumanoidRootPart
+                    hrp.CFrame = p.Character.HumanoidRootPart.CFrame * CFrame.Angles(0, math.rad(r*180), 0) * CFrame.new(0,0,0.1)
+                    hrp.Velocity = Vector3.new(9e6, 9e6, 9e6)
+                    for _, v in pairs(LocalPlayer.Character:GetDescendants()) do if v:IsA("BasePart") then v.CanCollide = false end end
                 end
             end
             RunService.Heartbeat:Wait()
         end
     end)
+end)
+CreateButton("STOP FLING", function() FlingActive = false end)
 
-    RunService.Stepped:Connect(function()
-        if _G_States.Noclip and LocalPlayer.Character then
-            for _, v in pairs(LocalPlayer.Character:GetDescendants()) do if v:IsA("BasePart") then v.CanCollide = false end end
-        end
-    end)
+CreateToggle("NOCLIP", "Noclip")
+CreateToggle("ESP", "ESP")
+CreateButton("TP TOOL", function()
+    local t = Instance.new("Tool", LocalPlayer.Backpack)
+    t.Name = "TP" t.RequiresHandle = false
+    t.Activated:Connect(function() LocalPlayer.Character:MoveTo(Mouse.Hit.p) end)
+end)
 
-    RunService.RenderStepped:Connect(function()
-        if _G_States.ESP then
-            for _, p in pairs(Players:GetPlayers()) do
-                if p ~= LocalPlayer and p.Character then
-                    local h = p.Character:FindFirstChild("ZE") or Instance.new("Highlight", p.Character)
-                    h.Name = "ZE" h.FillColor = Color3.new(1,0,0) h.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+-- Toggle Button (Mobile Friendly)
+local Tog = Instance.new("TextButton", sg)
+Tog.Size = UDim2.new(0, 40, 0, 40)
+Tog.Position = UDim2.new(0, 10, 0, 10)
+Tog.Text = "W"
+Tog.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+Tog.TextColor3 = Color3.new(1, 1, 1)
+Tog.Draggable = true
+Tog.MouseButton1Click:Connect(function() Main.Visible = not Main.Visible end)
+
+-- Core Logic
+task.spawn(function()
+    local angle = 0
+    while true do
+        if _G_States.WoodShield and LocalPlayer.Character then
+            angle = angle + 4
+            local hrp = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+            if hrp then
+                -- تحديد الهدف (أنت أو الشخص المكتوب اسمه)
+                local currentTargetHRP = hrp
+                if targetName ~= "" then
+                    for _, p in pairs(Players:GetPlayers()) do
+                        if p.Name:lower():find(targetName:lower()) and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
+                            currentTargetHRP = p.Character.HumanoidRootPart
+                            break
+                        end
+                    end
+                end
+
+                for _, v in pairs(workspace:GetDescendants()) do
+                    if v:IsA("BasePart") and not v.Anchored and not v:IsDescendantOf(LocalPlayer.Character) then
+                        if v.Name:lower():find("wood") or v.Name:lower():find("door") or v.Material == Enum.Material.Wood then
+                            for _, m in pairs(v:GetChildren()) do
+                                if m:IsA("BodyMover") or m:IsA("AlignPosition") or m:IsA("Attachment") then m:Destroy() end
+                            end
+                            local a0, a1 = Instance.new("Attachment", v), Instance.new("Attachment", currentTargetHRP)
+                            local al = Instance.new("AlignPosition", v)
+                            al.Attachment0, al.Attachment1 = a0, a1
+                            al.MaxForce, al.MaxVelocity, al.Responsiveness = math.huge, math.huge, 500
+                            a1.Position = Vector3.new(math.cos(angle)*1.2, 0, math.sin(angle)*1.2)
+                            v.Velocity = Vector3.new(1000, 1000, 1000)
+                            v.CanCollide = false
+                            game:GetService("Debris"):AddItem(a1, 0.1)
+                        end
+                    end
                 end
             end
         end
-    end)
+        RunService.Heartbeat:Wait()
+    end
+end)
 
-    local ToggleBtn = Instance.new("TextButton", sg)
-    ToggleBtn.Size = UDim2.new(0, 45, 0, 45)
-    ToggleBtn.Position = UDim2.new(0, 20, 0, 20)
-    ToggleBtn.BackgroundColor3 = Color3.fromRGB(0, 120, 215)
-    ToggleBtn.Text = "W"
-    ToggleBtn.TextColor3 = Color3.new(1,1,1)
-    ToggleBtn.Font = Enum.Font.GothamBold
-    ToggleBtn.Draggable = true
-    Instance.new("UICorner", ToggleBtn).CornerRadius = UDim.new(1, 0)
-    ToggleBtn.MouseButton1Click:Connect(function() Main.Visible = not Main.Visible end)
-end
+RunService.Stepped:Connect(function()
+    if _G_States.Noclip and LocalPlayer.Character then
+        for _, v in pairs(LocalPlayer.Character:GetDescendants()) do if v:IsA("BasePart") then v.CanCollide = false end end
+    end
+end)
 
-Submit.MouseButton1Click:Connect(function()
-    if KeyInput.Text == MASTER_KEY or VALID_KEYS[KeyInput.Text] then
-        StartWallhan()
-    else
-        Submit.Text = "WRONG KEY"
-        task.wait(1)
-        Submit.Text = "ACTIVATE"
+RunService.RenderStepped:Connect(function()
+    if _G_States.ESP then
+        for _, p in pairs(Players:GetPlayers()) do
+            if p ~= LocalPlayer and p.Character then
+                local h = p.Character:FindFirstChild("ZE") or Instance.new("Highlight", p.Character)
+                h.Name = "ZE" h.FillColor = Color3.new(1,0,0) h.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+            end
+        end
     end
 end)
