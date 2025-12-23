@@ -1,4 +1,4 @@
--- [[ WALLHAN V5 - ULTIMATE EDITION ]]
+-- [[ WALLHAN V6 - GOD EDITION ]]
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local LocalPlayer = Players.LocalPlayer
@@ -10,7 +10,7 @@ local checkpointPos = nil
 
 -- [[ UI CREATION ]]
 local sg = Instance.new("ScreenGui")
-sg.Name = "WallhanV5"
+sg.Name = "WallhanV6"
 sg.ResetOnSpawn = false
 local success, err = pcall(function() sg.Parent = game:GetService("CoreGui") end)
 if not success then sg.Parent = LocalPlayer:WaitForChild("PlayerGui") end
@@ -27,7 +27,7 @@ Main.Draggable = true
 local Title = Instance.new("TextLabel", Main)
 Title.Size = UDim2.new(1, 0, 0, 35)
 Title.BackgroundColor3 = Color3.fromRGB(40, 0, 0)
-Title.Text = "WALLHAN V5 ULTIMATE"
+Title.Text = "WALLHAN V6 GOD"
 Title.TextColor3 = Color3.new(1, 1, 1)
 Title.Font = Enum.Font.SourceSansBold
 Title.TextSize = 18
@@ -114,7 +114,7 @@ end)
 CreateToggle("WOOD SHIELD", "WoodShield")
 
 -- [[ FEATURES ]]
-CreateToggle("ADVANCED ESP (ANTI-HIDE)", "ESP")
+CreateToggle("ADVANCED ESP BOX", "ESP")
 
 CreateButton("GIVE TP TOOL", function()
     local t = Instance.new("Tool", LocalPlayer.Backpack)
@@ -155,7 +155,7 @@ TogBtn.MouseButton1Click:Connect(function() Main.Visible = not Main.Visible end)
 
 -- [[ CORE LOGIC ]]
 
--- Wood Shield Logic
+-- Improved Wood Shield Logic (Aggressive Pull)
 task.spawn(function()
     local angle = 0
     while true do
@@ -167,20 +167,37 @@ task.spawn(function()
                 if targetPlayer and targetPlayer.Character and targetPlayer.Character:FindFirstChild("HumanoidRootPart") then
                     finalTargetHRP = targetPlayer.Character.HumanoidRootPart
                 end
+                
                 for _, v in pairs(workspace:GetDescendants()) do
                     if v:IsA("BasePart") and not v.Anchored and not v:IsDescendantOf(LocalPlayer.Character) then
                         if v.Name:lower():find("wood") or v.Name:lower():find("door") or v.Material == Enum.Material.Wood then
+                            -- Clean up old movers
                             for _, m in pairs(v:GetChildren()) do
                                 if m:IsA("BodyMover") or m:IsA("AlignPosition") or m:IsA("Attachment") then m:Destroy() end
                             end
-                            local a0, a1 = Instance.new("Attachment", v), Instance.new("Attachment", finalTargetHRP)
+                            
+                            -- Aggressive Pulling Logic
+                            local a0 = Instance.new("Attachment", v)
+                            local a1 = Instance.new("Attachment", finalTargetHRP)
                             local al = Instance.new("AlignPosition", v)
-                            al.Attachment0, al.Attachment1 = a0, a1
-                            al.MaxForce, al.MaxVelocity, al.Responsiveness = math.huge, math.huge, 500
-                            a1.Position = Vector3.new(math.cos(angle)*1.2, 0, math.sin(angle)*1.2)
-                            v.Velocity = Vector3.new(1000, 1000, 1000)
+                            
+                            al.Attachment0 = a0
+                            al.Attachment1 = a1
+                            -- Maximize force to prevent wood from returning or getting stuck
+                            al.MaxForce = 9e9
+                            al.MaxVelocity = 9e9
+                            al.Responsiveness = 200 -- High responsiveness for instant tracking
+                            
+                            -- Position wood around target in a circle
+                            a1.Position = Vector3.new(math.cos(angle)*2, 1, math.sin(angle)*2)
+                            
+                            -- Add velocity to force movement
+                            v.Velocity = (finalTargetHRP.Position - v.Position).Unit * 500
                             v.CanCollide = false
+                            
+                            -- Auto-cleanup to prevent lag and allow re-targeting
                             game:GetService("Debris"):AddItem(a1, 0.1)
+                            game:GetService("Debris"):AddItem(al, 0.1)
                         end
                     end
                 end
@@ -190,7 +207,7 @@ task.spawn(function()
     end
 end)
 
--- ADVANCED ESP Logic (Anti-Hide)
+-- ADVANCED ESP Logic (Box & Names)
 local function CreateESP(p)
     local function ApplyESP(char)
         if not char then return end
@@ -200,14 +217,15 @@ local function CreateESP(p)
         local folder = char:FindFirstChild("WallhanESP") or Instance.new("Folder", char)
         folder.Name = "WallhanESP"
         
-        -- Box (Highlight) - Works even if parts are transparent
+        -- BOX (Highlight)
         local h = folder:FindFirstChild("Highlight") or Instance.new("Highlight", folder)
-        h.FillTransparency = 1
-        h.OutlineColor = Color3.new(1, 0, 0)
+        h.FillTransparency = 0.5 -- Semi-transparent red fill
+        h.FillColor = Color3.new(1, 0, 0)
+        h.OutlineColor = Color3.new(1, 1, 1) -- White outline for better visibility
         h.OutlineTransparency = 0
         h.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
         
-        -- Name Tag (Billboard)
+        -- NAME TAG
         local bg = folder:FindFirstChild("BillboardGui") or Instance.new("BillboardGui", folder)
         bg.Size = UDim2.new(0, 200, 0, 50)
         bg.Adornee = char:FindFirstChild("Head") or root
@@ -218,9 +236,10 @@ local function CreateESP(p)
         tl.Size = UDim2.new(1, 0, 1, 0)
         tl.BackgroundTransparency = 1
         tl.Text = p.Name .. " [" .. math.floor((LocalPlayer.Character.HumanoidRootPart.Position - root.Position).Magnitude) .. "m]"
-        tl.TextColor3 = Color3.new(1, 0, 0)
+        tl.TextColor3 = Color3.new(1, 1, 1) -- White text for contrast
         tl.Font = Enum.Font.SourceSansBold
         tl.TextSize = 16
+        tl.TextStrokeColor3 = Color3.new(1, 0, 0) -- Red stroke
         tl.TextStrokeTransparency = 0
     end
     
@@ -232,13 +251,6 @@ RunService.Heartbeat:Connect(function()
     if _G_States.ESP then
         for _, p in pairs(Players:GetPlayers()) do
             if p ~= LocalPlayer and p.Character then
-                -- Force visibility for hidden characters
-                for _, v in pairs(p.Character:GetDescendants()) do
-                    if v:IsA("BasePart") and v.Transparency > 0.9 then
-                        -- We don't change transparency to avoid detection, 
-                        -- but Highlight and BillboardGui will show them anyway.
-                    end
-                end
                 CreateESP(p)
             end
         end
