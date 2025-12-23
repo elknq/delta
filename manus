@@ -1,4 +1,4 @@
--- [[ WALLHAN V4 - FINAL VERSION ]]
+-- [[ WALLHAN V5 - ULTIMATE EDITION ]]
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local LocalPlayer = Players.LocalPlayer
@@ -10,7 +10,7 @@ local checkpointPos = nil
 
 -- [[ UI CREATION ]]
 local sg = Instance.new("ScreenGui")
-sg.Name = "WallhanV4"
+sg.Name = "WallhanV5"
 sg.ResetOnSpawn = false
 local success, err = pcall(function() sg.Parent = game:GetService("CoreGui") end)
 if not success then sg.Parent = LocalPlayer:WaitForChild("PlayerGui") end
@@ -27,7 +27,7 @@ Main.Draggable = true
 local Title = Instance.new("TextLabel", Main)
 Title.Size = UDim2.new(1, 0, 0, 35)
 Title.BackgroundColor3 = Color3.fromRGB(40, 0, 0)
-Title.Text = "WALLHAN V4"
+Title.Text = "WALLHAN V5 ULTIMATE"
 Title.TextColor3 = Color3.new(1, 1, 1)
 Title.Font = Enum.Font.SourceSansBold
 Title.TextSize = 18
@@ -113,8 +113,8 @@ end)
 
 CreateToggle("WOOD SHIELD", "WoodShield")
 
--- [[ NEW FEATURES ]]
-CreateToggle("ESP BOX & NAMES", "ESP")
+-- [[ FEATURES ]]
+CreateToggle("ADVANCED ESP (ANTI-HIDE)", "ESP")
 
 CreateButton("GIVE TP TOOL", function()
     local t = Instance.new("Tool", LocalPlayer.Backpack)
@@ -190,41 +190,62 @@ task.spawn(function()
     end
 end)
 
--- ESP Logic (Box & Names)
-RunService.RenderStepped:Connect(function()
-    for _, p in pairs(Players:GetPlayers()) do
-        if p ~= LocalPlayer and p.Character then
-            local char = p.Character
-            local esp = char:FindFirstChild("WallhanESP")
-            if _G_States.ESP then
-                if not esp then
-                    local folder = Instance.new("Folder", char)
-                    folder.Name = "WallhanESP"
-                    
-                    -- Highlight (Box)
-                    local h = Instance.new("Highlight", folder)
-                    h.FillTransparency = 1
-                    h.OutlineColor = Color3.new(1, 0, 0)
-                    h.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
-                    
-                    -- Name Tag
-                    local bg = Instance.new("BillboardGui", folder)
-                    bg.Size = UDim2.new(0, 200, 0, 50)
-                    bg.Adornee = char:FindFirstChild("Head")
-                    bg.AlwaysOnTop = true
-                    bg.ExtentsOffset = Vector3.new(0, 3, 0)
-                    
-                    local tl = Instance.new("TextLabel", bg)
-                    tl.Size = UDim2.new(1, 0, 1, 0)
-                    tl.BackgroundTransparency = 1
-                    tl.Text = p.Name
-                    tl.TextColor3 = Color3.new(1, 0, 0)
-                    tl.Font = Enum.Font.SourceSansBold
-                    tl.TextSize = 16
-                    tl.TextStrokeTransparency = 0
+-- ADVANCED ESP Logic (Anti-Hide)
+local function CreateESP(p)
+    local function ApplyESP(char)
+        if not char then return end
+        local root = char:WaitForChild("HumanoidRootPart", 5)
+        if not root then return end
+        
+        local folder = char:FindFirstChild("WallhanESP") or Instance.new("Folder", char)
+        folder.Name = "WallhanESP"
+        
+        -- Box (Highlight) - Works even if parts are transparent
+        local h = folder:FindFirstChild("Highlight") or Instance.new("Highlight", folder)
+        h.FillTransparency = 1
+        h.OutlineColor = Color3.new(1, 0, 0)
+        h.OutlineTransparency = 0
+        h.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+        
+        -- Name Tag (Billboard)
+        local bg = folder:FindFirstChild("BillboardGui") or Instance.new("BillboardGui", folder)
+        bg.Size = UDim2.new(0, 200, 0, 50)
+        bg.Adornee = char:FindFirstChild("Head") or root
+        bg.AlwaysOnTop = true
+        bg.ExtentsOffset = Vector3.new(0, 3, 0)
+        
+        local tl = bg:FindFirstChild("TextLabel") or Instance.new("TextLabel", bg)
+        tl.Size = UDim2.new(1, 0, 1, 0)
+        tl.BackgroundTransparency = 1
+        tl.Text = p.Name .. " [" .. math.floor((LocalPlayer.Character.HumanoidRootPart.Position - root.Position).Magnitude) .. "m]"
+        tl.TextColor3 = Color3.new(1, 0, 0)
+        tl.Font = Enum.Font.SourceSansBold
+        tl.TextSize = 16
+        tl.TextStrokeTransparency = 0
+    end
+    
+    p.CharacterAdded:Connect(ApplyESP)
+    if p.Character then ApplyESP(p.Character) end
+end
+
+RunService.Heartbeat:Connect(function()
+    if _G_States.ESP then
+        for _, p in pairs(Players:GetPlayers()) do
+            if p ~= LocalPlayer and p.Character then
+                -- Force visibility for hidden characters
+                for _, v in pairs(p.Character:GetDescendants()) do
+                    if v:IsA("BasePart") and v.Transparency > 0.9 then
+                        -- We don't change transparency to avoid detection, 
+                        -- but Highlight and BillboardGui will show them anyway.
+                    end
                 end
-            else
-                if esp then esp:Destroy() end
+                CreateESP(p)
+            end
+        end
+    else
+        for _, p in pairs(Players:GetPlayers()) do
+            if p.Character and p.Character:FindFirstChild("WallhanESP") then
+                p.Character.WallhanESP:Destroy()
             end
         end
     end
