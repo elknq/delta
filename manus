@@ -1,4 +1,4 @@
--- [[ WALLHAN V6 - GOD EDITION ]]
+-- [[ WALLHAN V8 - OBLITERATION EDITION ]]
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local LocalPlayer = Players.LocalPlayer
@@ -10,7 +10,7 @@ local checkpointPos = nil
 
 -- [[ UI CREATION ]]
 local sg = Instance.new("ScreenGui")
-sg.Name = "WallhanV6"
+sg.Name = "WallhanV8"
 sg.ResetOnSpawn = false
 local success, err = pcall(function() sg.Parent = game:GetService("CoreGui") end)
 if not success then sg.Parent = LocalPlayer:WaitForChild("PlayerGui") end
@@ -27,7 +27,7 @@ Main.Draggable = true
 local Title = Instance.new("TextLabel", Main)
 Title.Size = UDim2.new(1, 0, 0, 35)
 Title.BackgroundColor3 = Color3.fromRGB(40, 0, 0)
-Title.Text = "WALLHAN V6 GOD"
+Title.Text = "WALLHAN V8 OBLITERATION"
 Title.TextColor3 = Color3.new(1, 1, 1)
 Title.Font = Enum.Font.SourceSansBold
 Title.TextSize = 18
@@ -114,7 +114,7 @@ end)
 CreateToggle("WOOD SHIELD", "WoodShield")
 
 -- [[ FEATURES ]]
-CreateToggle("ADVANCED ESP BOX", "ESP")
+CreateToggle("RED ESP BOX & NAMES", "ESP")
 
 CreateButton("GIVE TP TOOL", function()
     local t = Instance.new("Tool", LocalPlayer.Backpack)
@@ -155,7 +155,7 @@ TogBtn.MouseButton1Click:Connect(function() Main.Visible = not Main.Visible end)
 
 -- [[ CORE LOGIC ]]
 
--- Improved Wood Shield Logic (Aggressive Pull)
+-- OBLITERATION Wood Shield Logic (Velocity Blast)
 task.spawn(function()
     local angle = 0
     while true do
@@ -176,26 +176,35 @@ task.spawn(function()
                                 if m:IsA("BodyMover") or m:IsA("AlignPosition") or m:IsA("Attachment") then m:Destroy() end
                             end
                             
-                            -- Aggressive Pulling Logic
+                            -- VELOCITY BLAST LOGIC
                             local a0 = Instance.new("Attachment", v)
                             local a1 = Instance.new("Attachment", finalTargetHRP)
                             local al = Instance.new("AlignPosition", v)
                             
                             al.Attachment0 = a0
                             al.Attachment1 = a1
-                            -- Maximize force to prevent wood from returning or getting stuck
-                            al.MaxForce = 9e9
-                            al.MaxVelocity = 9e9
-                            al.Responsiveness = 200 -- High responsiveness for instant tracking
+                            al.MaxForce = 1e18
+                            al.MaxVelocity = 1e18
+                            al.Responsiveness = 500
                             
-                            -- Position wood around target in a circle
-                            a1.Position = Vector3.new(math.cos(angle)*2, 1, math.sin(angle)*2)
+                            -- Position wood aggressively around target
+                            a1.Position = Vector3.new(math.cos(angle)*4, 0, math.sin(angle)*4)
                             
-                            -- Add velocity to force movement
-                            v.Velocity = (finalTargetHRP.Position - v.Position).Unit * 500
-                            v.CanCollide = false
+                            -- IMPACT DETECTION & BLAST
+                            v.Touched:Connect(function(hit)
+                                if hit.Parent:FindFirstChild("Humanoid") and hit.Parent ~= LocalPlayer.Character then
+                                    local victimHRP = hit.Parent:FindFirstChild("HumanoidRootPart")
+                                    if victimHRP then
+                                        -- Massive Velocity Blast to throw them out of the map
+                                        victimHRP.Velocity = Vector3.new(0, 1e6, 0) + (victimHRP.Position - v.Position).Unit * 1e6
+                                    end
+                                end
+                            end)
                             
-                            -- Auto-cleanup to prevent lag and allow re-targeting
+                            v.CanCollide = true
+                            v.Velocity = (finalTargetHRP.Position - v.Position).Unit * 2000
+                            
+                            -- Auto-cleanup
                             game:GetService("Debris"):AddItem(a1, 0.1)
                             game:GetService("Debris"):AddItem(al, 0.1)
                         end
@@ -207,7 +216,7 @@ task.spawn(function()
     end
 end)
 
--- ADVANCED ESP Logic (Box & Names)
+-- RED ESP Logic (Box & Names)
 local function CreateESP(p)
     local function ApplyESP(char)
         if not char then return end
@@ -217,15 +226,14 @@ local function CreateESP(p)
         local folder = char:FindFirstChild("WallhanESP") or Instance.new("Folder", char)
         folder.Name = "WallhanESP"
         
-        -- BOX (Highlight)
+        -- RED BOX (Highlight)
         local h = folder:FindFirstChild("Highlight") or Instance.new("Highlight", folder)
-        h.FillTransparency = 0.5 -- Semi-transparent red fill
-        h.FillColor = Color3.new(1, 0, 0)
-        h.OutlineColor = Color3.new(1, 1, 1) -- White outline for better visibility
+        h.FillTransparency = 1
+        h.OutlineColor = Color3.new(1, 0, 0)
         h.OutlineTransparency = 0
         h.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
         
-        -- NAME TAG
+        -- RED NAME TAG
         local bg = folder:FindFirstChild("BillboardGui") or Instance.new("BillboardGui", folder)
         bg.Size = UDim2.new(0, 200, 0, 50)
         bg.Adornee = char:FindFirstChild("Head") or root
@@ -236,11 +244,10 @@ local function CreateESP(p)
         tl.Size = UDim2.new(1, 0, 1, 0)
         tl.BackgroundTransparency = 1
         tl.Text = p.Name .. " [" .. math.floor((LocalPlayer.Character.HumanoidRootPart.Position - root.Position).Magnitude) .. "m]"
-        tl.TextColor3 = Color3.new(1, 1, 1) -- White text for contrast
+        tl.TextColor3 = Color3.new(1, 0, 0)
         tl.Font = Enum.Font.SourceSansBold
         tl.TextSize = 16
-        tl.TextStrokeColor3 = Color3.new(1, 0, 0) -- Red stroke
-        tl.TextStrokeTransparency = 0
+        tl.TextStrokeTransparency = 1
     end
     
     p.CharacterAdded:Connect(ApplyESP)
