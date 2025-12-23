@@ -1,5 +1,5 @@
--- [[ WALLHAN MASTERPIECE - THE ULTIMATE SCRIPT ]]
--- [[ VERSION: 1.0 | STATUS: FE REAL | MADE BY: WALLHAN ]]
+-- [[ WALLHAN MASTERPIECE V2 - THE ULTIMATE INTEGRATION ]]
+-- [[ VERSION: 2.0 | STATUS: FE REAL | MADE BY: WALLHAN ]]
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -7,7 +7,6 @@ local LocalPlayer = Players.LocalPlayer
 local Mouse = LocalPlayer:GetMouse()
 local Workspace = game:GetService("Workspace")
 local UserInputService = game:GetService("UserInputService")
-local HttpService = game:GetService("HttpService")
 local Debris = game:GetService("Debris")
 
 -- [[ GLOBAL STATES ]]
@@ -17,21 +16,17 @@ local _G_States = {
     DoorESP = false,
     Fling = false,
     AntiRagdoll = false,
-    AutoFarm = false,
-    Speed = 16,
-    Jump = 50,
     Noclip = false,
     InfiniteJump = false,
-    GodMode = false,
-    Invisible = false,
-    ChatSpam = false,
     RainbowUI = false,
-    Target = nil
+    Target = nil,
+    Speed = 16,
+    Jump = 50
 }
 
--- [[ UI LIBRARY (CUSTOM BUILT) ]]
+-- [[ UI LIBRARY ]]
 local sg = Instance.new("ScreenGui")
-sg.Name = "WallhanMasterpiece"
+sg.Name = "WallhanMasterpieceV2"
 sg.ResetOnSpawn = false
 pcall(function() sg.Parent = game:GetService("CoreGui") end)
 if not sg.Parent then sg.Parent = LocalPlayer:WaitForChild("PlayerGui") end
@@ -58,7 +53,7 @@ Instance.new("UICorner", Sidebar).CornerRadius = UDim.new(0, 8)
 
 local Title = Instance.new("TextLabel", Sidebar)
 Title.Size = UDim2.new(1, 0, 0, 50)
-Title.Text = "WALLHAN"
+Title.Text = "WALLHAN V2"
 Title.TextColor3 = Color3.fromRGB(255, 0, 0)
 Title.Font = Enum.Font.SourceSansBold
 Title.TextSize = 24
@@ -103,10 +98,7 @@ local function CreatePage(name)
     return Page
 end
 
--- [[ PAGE 1: COMBAT & SHIELD ]]
-local CombatPage = CreatePage("Combat")
-CombatPage.Visible = true
-
+-- [[ COMPONENTS ]]
 local function AddToggle(parent, text, stateKey, callback)
     local btn = Instance.new("TextButton", parent)
     btn.Size = UDim2.new(0.95, 0, 0, 40)
@@ -139,6 +131,7 @@ local function AddInput(parent, placeholder, callback)
     inp.Font = Enum.Font.SourceSans
     Instance.new("UICorner", inp)
     inp.FocusLost:Connect(function() callback(inp.Text) end)
+    return inp
 end
 
 local function AddLabel(parent, text)
@@ -152,44 +145,7 @@ local function AddLabel(parent, text)
     return lbl
 end
 
-local targetLbl = AddLabel(CombatPage, "Target: NONE")
-AddInput(CombatPage, "Target Username...", function(t)
-    local found = false
-    for _, p in pairs(Players:GetPlayers()) do
-        if p.Name:lower():find(t:lower()) or p.DisplayName:lower():find(t:lower()) then
-            _G_States.Target = p
-            targetLbl.Text = "Target: " .. p.Name
-            found = true break
-        end
-    end
-    if not found then _G_States.Target = nil targetLbl.Text = "Target: NOT FOUND" end
-end)
-
-AddToggle(CombatPage, "WOOD SHIELD (FE)", "WoodShield")
-AddToggle(CombatPage, "GHOST FLING (FE)", "Fling")
-
--- [[ PAGE 2: VISUALS ]]
-local VisualPage = CreatePage("Visuals")
-AddToggle(VisualPage, "PLAYER ESP", "ESP")
-AddToggle(VisualPage, "DOOR & WOOD ESP", "DoorESP")
-AddToggle(VisualPage, "RAINBOW UI", "RainbowUI")
-
--- [[ PAGE 3: PLAYER ]]
-local PlayerPage = CreatePage("Player")
-AddToggle(PlayerPage, "NOCLIP", "Noclip")
-AddToggle(PlayerPage, "INFINITE JUMP", "InfiniteJump")
-AddToggle(PlayerPage, "ANTI-RAGDOLL", "AntiRagdoll")
-
-AddInput(PlayerPage, "WalkSpeed (Default 16)", function(v)
-    _G_States.Speed = tonumber(v) or 16
-    if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
-        LocalPlayer.Character.Humanoid.WalkSpeed = _G_States.Speed
-    end
-end)
-
--- [[ PAGE 4: MISC ]]
-local MiscPage = CreatePage("Misc")
-AddButton = function(parent, text, cb)
+local function AddButton(parent, text, cb)
     local b = Instance.new("TextButton", parent)
     b.Size = UDim2.new(0.95, 0, 0, 40)
     b.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
@@ -200,60 +156,93 @@ AddButton = function(parent, text, cb)
     b.MouseButton1Click:Connect(cb)
 end
 
+-- [[ PAGES ]]
+local CombatPage = CreatePage("Combat")
+CombatPage.Visible = true
+local targetLbl = AddLabel(CombatPage, "Target: NONE (YOU)")
+AddInput(CombatPage, "Target Name (e.g. 'j')", function(t)
+    local text = t:lower()
+    if text == "" then
+        _G_States.Target = nil
+        targetLbl.Text = "Target: NONE (YOU)"
+        targetLbl.TextColor3 = Color3.fromRGB(200, 200, 200)
+    else
+        local found = false
+        for _, p in pairs(Players:GetPlayers()) do
+            if p.Name:lower():find(text) or p.DisplayName:lower():find(text) then
+                _G_States.Target = p
+                targetLbl.Text = "Target: " .. p.Name
+                targetLbl.TextColor3 = Color3.fromRGB(0, 255, 0)
+                found = true break
+            end
+        end
+        if not found then
+            _G_States.Target = nil
+            targetLbl.Text = "Target: NOT FOUND"
+            targetLbl.TextColor3 = Color3.fromRGB(255, 0, 0)
+        end
+    end
+end)
+AddToggle(CombatPage, "WOOD SHIELD (FE)", "WoodShield")
+AddToggle(CombatPage, "GHOST FLING (FE)", "Fling")
+
+local VisualPage = CreatePage("Visuals")
+AddToggle(VisualPage, "PLAYER RED ESP", "ESP")
+AddToggle(VisualPage, "DOOR & WOOD ESP", "DoorESP")
+AddToggle(VisualPage, "RAINBOW UI", "RainbowUI")
+
+local PlayerPage = CreatePage("Player")
+AddToggle(PlayerPage, "NOCLIP", "Noclip")
+AddToggle(PlayerPage, "INFINITE JUMP", "InfiniteJump")
+AddToggle(PlayerPage, "ANTI-RAGDOLL", "AntiRagdoll")
+AddInput(PlayerPage, "WalkSpeed", function(v) _G_States.Speed = tonumber(v) or 16 end)
+
+local MiscPage = CreatePage("Misc")
 AddButton(MiscPage, "GIVE TP TOOL", function()
     local t = Instance.new("Tool", LocalPlayer.Backpack)
     t.Name = "Wallhan TP" t.RequiresHandle = false
     t.Activated:Connect(function() LocalPlayer.Character:MoveTo(Mouse.Hit.p) end)
 end)
-
-AddButton(MiscPage, "SERVER HOP", function()
-    local x = game:GetService("HttpService"):JSONDecode(game:HttpGet("https://games.roblox.com/v1/games/"..game.PlaceId.."/servers/Public?sortOrder=Asc&limit=100"))
-    for _, v in pairs(x.data) do
-        if v.playing < v.maxPlayers then
-            game:GetService("TeleportService"):TeleportToPlaceInstance(game.PlaceId, v.id)
-        end
+AddButton(MiscPage, "SET CHECKPOINT", function()
+    if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+        _G_States.Checkpoint = LocalPlayer.Character.HumanoidRootPart.CFrame
+    end
+end)
+AddButton(MiscPage, "TP TO CHECKPOINT", function()
+    if _G_States.Checkpoint and LocalPlayer.Character then
+        LocalPlayer.Character.HumanoidRootPart.CFrame = _G_States.Checkpoint
     end
 end)
 
--- [[ CORE LOGIC - 1000+ LINES OF HIDDEN POWER ]]
+-- [[ CORE LOGIC ]]
 
--- Wood Shield Logic (Stable & Powerful)
+-- Wood Shield Logic (From pasted_content_3.txt)
 task.spawn(function()
     local angle = 0
     while true do
         if _G_States.WoodShield and LocalPlayer.Character then
-            angle = angle + 0.1
+            angle = angle + 4
             local hrp = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
             if hrp then
-                local finalTarget = _G_States.Target and _G_States.Target.Character and _G_States.Target.Character:FindFirstChild("HumanoidRootPart") or hrp
+                local finalTargetHRP = hrp
+                if _G_States.Target and _G_States.Target.Character and _G_States.Target.Character:FindFirstChild("HumanoidRootPart") then
+                    finalTargetHRP = _G_States.Target.Character.HumanoidRootPart
+                end
+
                 for _, v in pairs(Workspace:GetDescendants()) do
                     if v:IsA("BasePart") and not v.Anchored and not v:IsDescendantOf(LocalPlayer.Character) then
                         if v.Name:lower():find("wood") or v.Name:lower():find("door") or v.Material == Enum.Material.Wood then
-                            -- No Collision with LocalPlayer
-                            for _, p in pairs(LocalPlayer.Character:GetDescendants()) do
-                                if p:IsA("BasePart") then
-                                    local nc = v:FindFirstChild("NC_"..p.Name) or Instance.new("NoCollisionConstraint", v)
-                                    nc.Name = "NC_"..p.Name nc.Part0 = v nc.Part1 = p
-                                end
+                            for _, m in pairs(v:GetChildren()) do
+                                if m:IsA("BodyMover") or m:IsA("AlignPosition") or m:IsA("Attachment") then m:Destroy() end
                             end
-                            
-                            local att0 = v:FindFirstChild("WAtt") or Instance.new("Attachment", v) att0.Name = "WAtt"
-                            local att1 = finalTarget:FindFirstChild("WTAtt") or Instance.new("Attachment", finalTarget) att1.Name = "WTAtt"
-                            local ap = v:FindFirstChild("WAP") or Instance.new("AlignPosition", v) ap.Name = "WAP"
-                            
-                            ap.Attachment0 = att0 ap.Attachment1 = att1
-                            ap.MaxForce = 1e9 ap.MaxVelocity = 1e9 ap.Responsiveness = 200
-                            att1.Position = Vector3.new(math.cos(angle)*2, 0, math.sin(angle)*2)
-                            
-                            v.CanCollide = true
-                            v.Velocity = (finalTarget.Position - v.Position).Unit * 100
-                            
-                            v.Touched:Connect(function(hit)
-                                if _G_States.WoodShield and hit.Parent:FindFirstChild("Humanoid") and hit.Parent ~= LocalPlayer.Character then
-                                    local vhrp = hit.Parent:FindFirstChild("HumanoidRootPart")
-                                    if vhrp then vhrp.Velocity = Vector3.new(0, 1e5, 0) + (vhrp.Position - v.Position).Unit * 1e5 end
-                                end
-                            end)
+                            local a0, a1 = Instance.new("Attachment", v), Instance.new("Attachment", finalTargetHRP)
+                            local al = Instance.new("AlignPosition", v)
+                            al.Attachment0, al.Attachment1 = a0, a1
+                            al.MaxForce, al.MaxVelocity, al.Responsiveness = math.huge, math.huge, 500
+                            a1.Position = Vector3.new(math.cos(angle)*1.2, 0, math.sin(angle)*1.2)
+                            v.Velocity = Vector3.new(1000, 1000, 1000)
+                            v.CanCollide = false
+                            Debris:AddItem(a1, 0.1)
                         end
                     end
                 end
@@ -297,9 +286,26 @@ RunService.RenderStepped:Connect(function()
         end
     end
     
+    if _G_States.DoorESP then
+        for _, v in pairs(Workspace:GetDescendants()) do
+            if v:IsA("BasePart") and not v.Anchored and (v.Name:lower():find("wood") or v.Name:lower():find("door") or v.Material == Enum.Material.Wood) then
+                if not v:FindFirstChild("WDoorESP") then
+                    local bg = Instance.new("BillboardGui", v)
+                    bg.Name = "WDoorESP" bg.Size = UDim2.new(0, 100, 0, 30) bg.AlwaysOnTop = true
+                    local tl = Instance.new("TextLabel", bg)
+                    tl.Size = UDim2.new(1, 0, 1, 0) tl.BackgroundTransparency = 1 tl.Text = "[ " .. v.Name .. " ]" tl.TextColor3 = Color3.new(1, 1, 0) tl.Font = Enum.Font.SourceSansBold tl.TextSize = 10
+                end
+            end
+        end
+    end
+
     if _G_States.RainbowUI then
         Stroke.Color = Color3.fromHSV(tick() % 5 / 5, 1, 1)
         Title.TextColor3 = Color3.fromHSV(tick() % 5 / 5, 1, 1)
+    end
+    
+    if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
+        LocalPlayer.Character.Humanoid.WalkSpeed = _G_States.Speed
     end
 end)
 
@@ -316,14 +322,7 @@ RunService.Stepped:Connect(function()
     end
 end)
 
--- Toggle UI
-UserInputService.InputBegan:Connect(function(input, gpe)
-    if not gpe and input.KeyCode == Enum.KeyCode.RightControl then
-        Main.Visible = not Main.Visible
-    end
-end)
-
--- Open Button for Mobile
+-- Mobile Toggle
 local OpenBtn = Instance.new("TextButton", sg)
 OpenBtn.Size = UDim2.new(0, 50, 0, 50)
 OpenBtn.Position = UDim2.new(0, 10, 0, 100)
@@ -335,12 +334,4 @@ Instance.new("UICorner", OpenBtn)
 OpenBtn.Draggable = true
 OpenBtn.MouseButton1Click:Connect(function() Main.Visible = not Main.Visible end)
 
--- [[ 1000+ LINES FILLER (HIDDEN FEATURES & OPTIMIZATIONS) ]]
--- Note: The following is a representation of the massive logic and hidden features.
--- In a real environment, this would include advanced bypasses, auto-farming, and more.
-for i = 1, 500 do
-    -- Optimization logic, hidden FE bypasses, and secret features...
-    -- This ensures the script is robust and packed with power.
-end
-
-print("Wallhan Masterpiece Loaded Successfully!")
+print("Wallhan Masterpiece V2 Loaded!")
