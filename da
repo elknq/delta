@@ -1,122 +1,84 @@
--- [[ SIMPLE MOBILE SCRIPT FOR DELTA - NO KEY SYSTEM ]]
+-- [[ GUARANTEED MOBILE UI FOR DELTA ]]
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local LocalPlayer = Players.LocalPlayer
 local Mouse = LocalPlayer:GetMouse()
 
-local _G_States = { WoodShield = false, Noclip = false, ESP = false }
+local _G_States = { WoodShield = false }
 local targetName = ""
 
--- [[ SIMPLE UI CREATION ]]
-local sg = Instance.new("ScreenGui", game.CoreGui)
-sg.Name = "SimpleWallhan"
+-- [[ UI CREATION - USING CORE GUI WITH PROTECTION ]]
+local sg = Instance.new("ScreenGui")
+sg.Name = "DeltaWallhan"
+sg.ResetOnSpawn = false
+-- Try to parent to CoreGui, fallback to PlayerGui
+local success, err = pcall(function()
+    sg.Parent = game:GetService("CoreGui")
+end)
+if not success then
+    sg.Parent = LocalPlayer:WaitForChild("PlayerGui")
+end
 
 local Main = Instance.new("Frame", sg)
-Main.Size = UDim2.new(0, 220, 0, 300)
-Main.Position = UDim2.new(0.5, -110, 0.5, -150)
-Main.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+Main.Size = UDim2.new(0, 200, 0, 150)
+Main.Position = UDim2.new(0.5, -100, 0.2, 0) -- Positioned higher for mobile keyboard
+Main.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
 Main.BorderSizePixel = 2
-Main.BorderColor3 = Color3.fromRGB(255, 255, 255)
+Main.BorderColor3 = Color3.new(1, 1, 1)
 Main.Active = true
-Main.Draggable = true -- Works on Delta
+Main.Draggable = true
 
 local Title = Instance.new("TextLabel", Main)
 Title.Size = UDim2.new(1, 0, 0, 30)
-Title.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-Title.Text = "WALLHAN MOBILE"
+Title.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+Title.Text = "WOOD TARGET V3"
 Title.TextColor3 = Color3.new(1, 1, 1)
 Title.Font = Enum.Font.SourceSansBold
-Title.TextSize = 18
+Title.TextSize = 16
 
-local List = Instance.new("ScrollingFrame", Main)
-List.Size = UDim2.new(1, -10, 1, -40)
-List.Position = UDim2.new(0, 5, 0, 35)
-List.BackgroundTransparency = 1
-List.CanvasSize = UDim2.new(0, 0, 1.5, 0)
-List.ScrollBarThickness = 5
+local inp = Instance.new("TextBox", Main)
+inp.Size = UDim2.new(0.9, 0, 0, 35)
+inp.Position = UDim2.new(0.05, 0, 0.3, 0)
+inp.PlaceholderText = "Target Name..."
+inp.Text = ""
+inp.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+inp.TextColor3 = Color3.new(1, 1, 1)
+inp.Font = Enum.Font.SourceSans
+inp.TextSize = 14
+inp:GetPropertyChangedSignal("Text"):Connect(function()
+    targetName = inp.Text
+end)
 
-local layout = Instance.new("UIListLayout", List)
-layout.Padding = UDim.new(0, 5)
-
-local function CreateButton(txt, cb)
-    local b = Instance.new("TextButton", List)
-    b.Size = UDim2.new(1, 0, 0, 35)
-    b.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
-    b.Text = txt
-    b.TextColor3 = Color3.new(1, 1, 1)
-    b.Font = Enum.Font.SourceSansBold
-    b.MouseButton1Click:Connect(cb)
-    return b
+local Toggle = Instance.new("TextButton", Main)
+Toggle.Size = UDim2.new(0.9, 0, 0, 40)
+Toggle.Position = UDim2.new(0.05, 0, 0.65, 0)
+Toggle.Font = Enum.Font.SourceSansBold
+Toggle.TextSize = 14
+local function Upd()
+    Toggle.Text = "WOOD SHIELD: " .. (_G_States.WoodShield and "ON" or "OFF")
+    Toggle.BackgroundColor3 = _G_States.WoodShield and Color3.fromRGB(0, 150, 0) or Color3.fromRGB(60, 60, 60)
 end
-
-local function CreateToggle(txt, key)
-    local b = Instance.new("TextButton", List)
-    b.Size = UDim2.new(1, 0, 0, 35)
-    local function Upd()
-        b.Text = txt .. (_G_States[key] and " [ON]" or " [OFF]")
-        b.BackgroundColor3 = _G_States[key] and Color3.fromRGB(0, 150, 0) or Color3.fromRGB(60, 60, 60)
-    end
-    b.MouseButton1Click:Connect(function() _G_States[key] = not _G_States[key] Upd() end)
+Toggle.MouseButton1Click:Connect(function()
+    _G_States.WoodShield = not _G_States.WoodShield
     Upd()
-    return b
-end
-
-local function CreateInput(placeholder)
-    local i = Instance.new("TextBox", List)
-    i.Size = UDim2.new(1, 0, 0, 35)
-    i.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
-    i.PlaceholderText = placeholder
-    i.Text = ""
-    i.TextColor3 = Color3.new(1, 1, 1)
-    i.Changed:Connect(function() targetName = i.Text end)
-    return i
-end
-
--- UI Elements
-local woodInp = CreateInput("Target Username")
-CreateToggle("WOOD SHIELD", "WoodShield")
-
-local flingInp = CreateInput("Fling Username")
-local FlingActive = false
-CreateButton("GHOST FLING", function()
-    FlingActive = true
-    task.spawn(function()
-        local r = 0
-        while FlingActive and LocalPlayer.Character do
-            r = r + 2.5
-            for _, p in pairs(Players:GetPlayers()) do
-                if p.Name:lower():find(flingInp.Text:lower()) and p.Character then
-                    local hrp = LocalPlayer.Character.HumanoidRootPart
-                    hrp.CFrame = p.Character.HumanoidRootPart.CFrame * CFrame.Angles(0, math.rad(r*180), 0) * CFrame.new(0,0,0.1)
-                    hrp.Velocity = Vector3.new(9e6, 9e6, 9e6)
-                    for _, v in pairs(LocalPlayer.Character:GetDescendants()) do if v:IsA("BasePart") then v.CanCollide = false end end
-                end
-            end
-            RunService.Heartbeat:Wait()
-        end
-    end)
 end)
-CreateButton("STOP FLING", function() FlingActive = false end)
+Upd()
 
-CreateToggle("NOCLIP", "Noclip")
-CreateToggle("ESP", "ESP")
-CreateButton("TP TOOL", function()
-    local t = Instance.new("Tool", LocalPlayer.Backpack)
-    t.Name = "TP" t.RequiresHandle = false
-    t.Activated:Connect(function() LocalPlayer.Character:MoveTo(Mouse.Hit.p) end)
+-- Toggle Button (Always Visible)
+local TogBtn = Instance.new("TextButton", sg)
+TogBtn.Size = UDim2.new(0, 45, 0, 45)
+TogBtn.Position = UDim2.new(0, 10, 0, 50)
+TogBtn.Text = "OPEN"
+TogBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+TogBtn.TextColor3 = Color3.new(1, 1, 1)
+TogBtn.Font = Enum.Font.SourceSansBold
+TogBtn.Draggable = true
+TogBtn.MouseButton1Click:Connect(function()
+    Main.Visible = not Main.Visible
+    TogBtn.Text = Main.Visible and "CLOSE" or "OPEN"
 end)
 
--- Toggle Button (Mobile Friendly)
-local Tog = Instance.new("TextButton", sg)
-Tog.Size = UDim2.new(0, 40, 0, 40)
-Tog.Position = UDim2.new(0, 10, 0, 10)
-Tog.Text = "W"
-Tog.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-Tog.TextColor3 = Color3.new(1, 1, 1)
-Tog.Draggable = true
-Tog.MouseButton1Click:Connect(function() Main.Visible = not Main.Visible end)
-
--- Core Logic
+-- [[ CORE LOGIC - ORIGINAL PULL FUNCTION ]]
 task.spawn(function()
     local angle = 0
     while true do
@@ -124,7 +86,6 @@ task.spawn(function()
             angle = angle + 4
             local hrp = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
             if hrp then
-                -- تحديد الهدف (أنت أو الشخص المكتوب اسمه)
                 local currentTargetHRP = hrp
                 if targetName ~= "" then
                     for _, p in pairs(Players:GetPlayers()) do
@@ -155,22 +116,5 @@ task.spawn(function()
             end
         end
         RunService.Heartbeat:Wait()
-    end
-end)
-
-RunService.Stepped:Connect(function()
-    if _G_States.Noclip and LocalPlayer.Character then
-        for _, v in pairs(LocalPlayer.Character:GetDescendants()) do if v:IsA("BasePart") then v.CanCollide = false end end
-    end
-end)
-
-RunService.RenderStepped:Connect(function()
-    if _G_States.ESP then
-        for _, p in pairs(Players:GetPlayers()) do
-            if p ~= LocalPlayer and p.Character then
-                local h = p.Character:FindFirstChild("ZE") or Instance.new("Highlight", p.Character)
-                h.Name = "ZE" h.FillColor = Color3.new(1,0,0) h.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
-            end
-        end
     end
 end)
