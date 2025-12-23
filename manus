@@ -1,4 +1,4 @@
--- [[ WALLHAN V10 - FORCE EDITION ]]
+-- [[ WALLHAN V11 - SKY STRIKE EDITION ]]
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local LocalPlayer = Players.LocalPlayer
@@ -10,7 +10,7 @@ local checkpointPos = nil
 
 -- [[ UI CREATION ]]
 local sg = Instance.new("ScreenGui")
-sg.Name = "WallhanV10"
+sg.Name = "WallhanV11"
 sg.ResetOnSpawn = false
 local success, err = pcall(function() sg.Parent = game:GetService("CoreGui") end)
 if not success then sg.Parent = LocalPlayer:WaitForChild("PlayerGui") end
@@ -27,7 +27,7 @@ Main.Draggable = true
 local Title = Instance.new("TextLabel", Main)
 Title.Size = UDim2.new(1, 0, 0, 35)
 Title.BackgroundColor3 = Color3.fromRGB(40, 0, 0)
-Title.Text = "WALLHAN V10 FORCE"
+Title.Text = "WALLHAN V11 SKY STRIKE"
 Title.TextColor3 = Color3.new(1, 1, 1)
 Title.Font = Enum.Font.SourceSansBold
 Title.TextSize = 18
@@ -154,7 +154,7 @@ TogBtn.MouseButton1Click:Connect(function() Main.Visible = not Main.Visible end)
 
 -- [[ CORE LOGIC ]]
 
--- FORCE Wood Shield Logic (BodyVelocity)
+-- SKY STRIKE Wood Shield Logic
 task.spawn(function()
     while true do
         if _G_States.WoodShield and LocalPlayer.Character then
@@ -168,24 +168,35 @@ task.spawn(function()
                 for _, v in pairs(workspace:GetDescendants()) do
                     if v:IsA("BasePart") and not v.Anchored and not v:IsDescendantOf(LocalPlayer.Character) then
                         if v.Name:lower():find("wood") or v.Name:lower():find("door") or v.Material == Enum.Material.Wood then
-                            -- Use BodyVelocity for direct and forced movement
-                            local bv = v:FindFirstChild("WallhanBV") or Instance.new("BodyVelocity", v)
-                            bv.Name = "WallhanBV"
-                            bv.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
-                            
-                            -- Calculate direction and force movement
-                            local direction = (finalTargetHRP.Position - v.Position).Unit
-                            local distance = (finalTargetHRP.Position - v.Position).Magnitude
-                            
-                            if distance > 5 then
-                                bv.Velocity = direction * 300 -- Fast travel to target
-                            else
-                                -- Orbit/Spin around target when close
-                                local orbit = Vector3.new(math.cos(tick()*10), 0, math.sin(tick()*10)) * 5
-                                bv.Velocity = (finalTargetHRP.Position + orbit - v.Position) * 50
+                            -- Clean up old movers
+                            for _, m in pairs(v:GetChildren()) do
+                                if m:IsA("BodyMover") or m:IsA("AlignPosition") or m:IsA("Attachment") then m:Destroy() end
                             end
                             
-                            -- Fling Logic on Touch
+                            -- SKY STRIKE LOGIC
+                            local a0 = Instance.new("Attachment", v)
+                            local a1 = Instance.new("Attachment", finalTargetHRP)
+                            local al = Instance.new("AlignPosition", v)
+                            
+                            al.Attachment0 = a0
+                            al.Attachment1 = a1
+                            al.MaxForce = 1e15
+                            al.MaxVelocity = 1e15
+                            al.Responsiveness = 200
+                            
+                            -- Position wood ABOVE the target for a strike
+                            -- We use a repeating cycle to make it strike from above then reset
+                            local strikeHeight = 15
+                            local time = tick() * 5
+                            local offset = Vector3.new(math.cos(time)*2, strikeHeight, math.sin(time)*2)
+                            
+                            a1.Position = offset
+                            
+                            -- Force downward velocity for impact
+                            v.Velocity = Vector3.new(0, -500, 0) + (finalTargetHRP.Position - v.Position).Unit * 200
+                            v.CanCollide = true
+                            
+                            -- Fling on Touch
                             v.Touched:Connect(function(hit)
                                 if _G_States.WoodShield and hit.Parent:FindFirstChild("Humanoid") and hit.Parent ~= LocalPlayer.Character then
                                     local victimHRP = hit.Parent:FindFirstChild("HumanoidRootPart")
@@ -195,15 +206,11 @@ task.spawn(function()
                                 end
                             end)
                             
-                            v.CanCollide = true
+                            game:GetService("Debris"):AddItem(a1, 0.1)
+                            game:GetService("Debris"):AddItem(al, 0.1)
                         end
                     end
                 end
-            end
-        else
-            -- Cleanup when OFF
-            for _, v in pairs(workspace:GetDescendants()) do
-                if v:FindFirstChild("WallhanBV") then v.WallhanBV:Destroy() end
             end
         end
         RunService.Heartbeat:Wait()
