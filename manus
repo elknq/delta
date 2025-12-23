@@ -1,69 +1,105 @@
--- [[ SMART TARGET WOOD SHIELD FOR DELTA ]]
+-- [[ WALLHAN V4 - FINAL VERSION ]]
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local LocalPlayer = Players.LocalPlayer
 local Mouse = LocalPlayer:GetMouse()
 
-local _G_States = { WoodShield = false }
+local _G_States = { WoodShield = false, ESP = false }
 local targetPlayer = nil
+local checkpointPos = nil
 
 -- [[ UI CREATION ]]
 local sg = Instance.new("ScreenGui")
-sg.Name = "SmartWallhan"
+sg.Name = "WallhanV4"
 sg.ResetOnSpawn = false
 local success, err = pcall(function() sg.Parent = game:GetService("CoreGui") end)
 if not success then sg.Parent = LocalPlayer:WaitForChild("PlayerGui") end
 
 local Main = Instance.new("Frame", sg)
-Main.Size = UDim2.new(0, 220, 0, 180)
-Main.Position = UDim2.new(0.5, -110, 0.2, 0)
-Main.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+Main.Size = UDim2.new(0, 240, 0, 420)
+Main.Position = UDim2.new(0.5, -120, 0.2, 0)
+Main.BackgroundColor3 = Color3.fromRGB(15, 0, 0)
 Main.BorderSizePixel = 2
-Main.BorderColor3 = Color3.new(1, 1, 1)
+Main.BorderColor3 = Color3.fromRGB(255, 0, 0)
 Main.Active = true
 Main.Draggable = true
 
 local Title = Instance.new("TextLabel", Main)
-Title.Size = UDim2.new(1, 0, 0, 30)
-Title.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-Title.Text = "SMART WOOD TARGET"
+Title.Size = UDim2.new(1, 0, 0, 35)
+Title.BackgroundColor3 = Color3.fromRGB(40, 0, 0)
+Title.Text = "WALLHAN V4"
 Title.TextColor3 = Color3.new(1, 1, 1)
 Title.Font = Enum.Font.SourceSansBold
-Title.TextSize = 16
+Title.TextSize = 18
 
-local inp = Instance.new("TextBox", Main)
-inp.Size = UDim2.new(0.9, 0, 0, 35)
-inp.Position = UDim2.new(0.05, 0, 0.25, 0)
-inp.PlaceholderText = "Type part of name (e.g. 'j')"
-inp.Text = ""
-inp.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-inp.TextColor3 = Color3.new(1, 1, 1)
-inp.Font = Enum.Font.SourceSans
-inp.TextSize = 14
+local List = Instance.new("ScrollingFrame", Main)
+List.Size = UDim2.new(1, -10, 1, -70)
+List.Position = UDim2.new(0, 5, 0, 40)
+List.BackgroundTransparency = 1
+List.CanvasSize = UDim2.new(0, 0, 2, 0)
+List.ScrollBarThickness = 4
 
-local TargetDisplay = Instance.new("TextLabel", Main)
-TargetDisplay.Size = UDim2.new(0.9, 0, 0, 25)
-TargetDisplay.Position = UDim2.new(0.05, 0, 0.5, 0)
+local layout = Instance.new("UIListLayout", List)
+layout.Padding = UDim.new(0, 5)
+
+local function CreateButton(txt, cb)
+    local b = Instance.new("TextButton", List)
+    b.Size = UDim2.new(1, 0, 0, 35)
+    b.BackgroundColor3 = Color3.fromRGB(60, 0, 0)
+    b.Text = txt
+    b.TextColor3 = Color3.new(1, 1, 1)
+    b.Font = Enum.Font.SourceSansBold
+    b.MouseButton1Click:Connect(cb)
+    Instance.new("UICorner", b)
+    return b
+end
+
+local function CreateToggle(txt, key)
+    local b = Instance.new("TextButton", List)
+    b.Size = UDim2.new(1, 0, 0, 35)
+    local function Upd()
+        b.Text = txt .. (_G_States[key] and " [ON]" or " [OFF]")
+        b.BackgroundColor3 = _G_States[key] and Color3.fromRGB(200, 0, 0) or Color3.fromRGB(60, 0, 0)
+    end
+    b.MouseButton1Click:Connect(function() _G_States[key] = not _G_States[key] Upd() end)
+    Upd()
+    Instance.new("UICorner", b)
+    return b
+end
+
+local function CreateInput(placeholder)
+    local i = Instance.new("TextBox", List)
+    i.Size = UDim2.new(1, 0, 0, 35)
+    i.BackgroundColor3 = Color3.fromRGB(30, 0, 0)
+    i.PlaceholderText = placeholder
+    i.Text = ""
+    i.TextColor3 = Color3.new(1, 1, 1)
+    i.Font = Enum.Font.SourceSans
+    Instance.new("UICorner", i)
+    return i
+end
+
+-- [[ WOOD SHIELD SECTION ]]
+local woodInp = CreateInput("Target Name (e.g. 'j')")
+local TargetDisplay = Instance.new("TextLabel", List)
+TargetDisplay.Size = UDim2.new(1, 0, 0, 25)
 TargetDisplay.BackgroundTransparency = 1
 TargetDisplay.Text = "Target: NONE (YOU)"
-TargetDisplay.TextColor3 = Color3.fromRGB(200, 200, 200)
+TargetDisplay.TextColor3 = Color3.fromRGB(255, 255, 255)
 TargetDisplay.Font = Enum.Font.SourceSansItalic
-TargetDisplay.TextSize = 13
+TargetDisplay.TextSize = 14
 
--- Smart Search Logic
-inp:GetPropertyChangedSignal("Text"):Connect(function()
-    local text = inp.Text:lower()
+woodInp:GetPropertyChangedSignal("Text"):Connect(function()
+    local text = woodInp.Text:lower()
     if text == "" then
         targetPlayer = nil
         TargetDisplay.Text = "Target: NONE (YOU)"
-        TargetDisplay.TextColor3 = Color3.fromRGB(200, 200, 200)
     else
         local found = false
         for _, p in pairs(Players:GetPlayers()) do
             if p.Name:lower():find(text) or p.DisplayName:lower():find(text) then
                 targetPlayer = p
                 TargetDisplay.Text = "Target: " .. p.Name
-                TargetDisplay.TextColor3 = Color3.fromRGB(0, 255, 0)
                 found = true
                 break
             end
@@ -71,36 +107,55 @@ inp:GetPropertyChangedSignal("Text"):Connect(function()
         if not found then
             targetPlayer = nil
             TargetDisplay.Text = "Target: NOT FOUND"
-            TargetDisplay.TextColor3 = Color3.fromRGB(255, 0, 0)
         end
     end
 end)
 
-local Toggle = Instance.new("TextButton", Main)
-Toggle.Size = UDim2.new(0.9, 0, 0, 40)
-Toggle.Position = UDim2.new(0.05, 0, 0.7, 0)
-Toggle.Font = Enum.Font.SourceSansBold
-Toggle.TextSize = 14
-local function Upd()
-    Toggle.Text = "WOOD SHIELD: " .. (_G_States.WoodShield and "ON" or "OFF")
-    Toggle.BackgroundColor3 = _G_States.WoodShield and Color3.fromRGB(0, 150, 0) or Color3.fromRGB(60, 60, 60)
-end
-Toggle.MouseButton1Click:Connect(function() _G_States.WoodShield = not _G_States.WoodShield Upd() end)
-Upd()
+CreateToggle("WOOD SHIELD", "WoodShield")
 
+-- [[ NEW FEATURES ]]
+CreateToggle("ESP BOX & NAMES", "ESP")
+
+CreateButton("GIVE TP TOOL", function()
+    local t = Instance.new("Tool", LocalPlayer.Backpack)
+    t.Name = "Wallhan TP" t.RequiresHandle = false
+    t.Activated:Connect(function() LocalPlayer.Character:MoveTo(Mouse.Hit.p) end)
+end)
+
+CreateButton("SET CHECKPOINT", function()
+    if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+        checkpointPos = LocalPlayer.Character.HumanoidRootPart.CFrame
+    end
+end)
+
+CreateButton("TP TO CHECKPOINT", function()
+    if checkpointPos and LocalPlayer.Character then
+        LocalPlayer.Character.HumanoidRootPart.CFrame = checkpointPos
+    end
+end)
+
+-- Rights Label
+local Rights = Instance.new("TextLabel", Main)
+Rights.Size = UDim2.new(1, 0, 0, 30)
+Rights.Position = UDim2.new(0, 0, 1, -30)
+Rights.BackgroundColor3 = Color3.fromRGB(40, 0, 0)
+Rights.Text = "Made by Wallhan"
+Rights.TextColor3 = Color3.new(1, 1, 1)
+Rights.Font = Enum.Font.SourceSansBold
+
+-- Toggle Button
 local TogBtn = Instance.new("TextButton", sg)
 TogBtn.Size = UDim2.new(0, 45, 0, 45)
 TogBtn.Position = UDim2.new(0, 10, 0, 50)
-TogBtn.Text = "OPEN"
-TogBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+TogBtn.Text = "W"
+TogBtn.BackgroundColor3 = Color3.fromRGB(150, 0, 0)
 TogBtn.TextColor3 = Color3.new(1, 1, 1)
 TogBtn.Draggable = true
-TogBtn.MouseButton1Click:Connect(function()
-    Main.Visible = not Main.Visible
-    TogBtn.Text = Main.Visible and "CLOSE" or "OPEN"
-end)
+TogBtn.MouseButton1Click:Connect(function() Main.Visible = not Main.Visible end)
 
 -- [[ CORE LOGIC ]]
+
+-- Wood Shield Logic
 task.spawn(function()
     local angle = 0
     while true do
@@ -108,12 +163,10 @@ task.spawn(function()
             angle = angle + 4
             local hrp = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
             if hrp then
-                -- تحديد الهدف النهائي
                 local finalTargetHRP = hrp
                 if targetPlayer and targetPlayer.Character and targetPlayer.Character:FindFirstChild("HumanoidRootPart") then
                     finalTargetHRP = targetPlayer.Character.HumanoidRootPart
                 end
-
                 for _, v in pairs(workspace:GetDescendants()) do
                     if v:IsA("BasePart") and not v.Anchored and not v:IsDescendantOf(LocalPlayer.Character) then
                         if v.Name:lower():find("wood") or v.Name:lower():find("door") or v.Material == Enum.Material.Wood then
@@ -134,5 +187,45 @@ task.spawn(function()
             end
         end
         RunService.Heartbeat:Wait()
+    end
+end)
+
+-- ESP Logic (Box & Names)
+RunService.RenderStepped:Connect(function()
+    for _, p in pairs(Players:GetPlayers()) do
+        if p ~= LocalPlayer and p.Character then
+            local char = p.Character
+            local esp = char:FindFirstChild("WallhanESP")
+            if _G_States.ESP then
+                if not esp then
+                    local folder = Instance.new("Folder", char)
+                    folder.Name = "WallhanESP"
+                    
+                    -- Highlight (Box)
+                    local h = Instance.new("Highlight", folder)
+                    h.FillTransparency = 1
+                    h.OutlineColor = Color3.new(1, 0, 0)
+                    h.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+                    
+                    -- Name Tag
+                    local bg = Instance.new("BillboardGui", folder)
+                    bg.Size = UDim2.new(0, 200, 0, 50)
+                    bg.Adornee = char:FindFirstChild("Head")
+                    bg.AlwaysOnTop = true
+                    bg.ExtentsOffset = Vector3.new(0, 3, 0)
+                    
+                    local tl = Instance.new("TextLabel", bg)
+                    tl.Size = UDim2.new(1, 0, 1, 0)
+                    tl.BackgroundTransparency = 1
+                    tl.Text = p.Name
+                    tl.TextColor3 = Color3.new(1, 0, 0)
+                    tl.Font = Enum.Font.SourceSansBold
+                    tl.TextSize = 16
+                    tl.TextStrokeTransparency = 0
+                end
+            else
+                if esp then esp:Destroy() end
+            end
+        end
     end
 end)
